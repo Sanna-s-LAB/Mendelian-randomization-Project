@@ -1,6 +1,6 @@
 These files are used to to the standard quality control of GWAS files pre-MR and clumping.
-- To delete the rows where there were betas above 4 or below -4 (the first few rows). Via the same file I corrected a wrong base pair position. (using ***rm_beta.sh*** to run ***RM_beta.R***) --> Create a folder **GWAS_new**, where to put new GWAS  
-- Then since there were NAs in the microbiome files use the reference file of the 1000Genomes EUR from which you took the columns chr:position and rsid. Merge with all GWAS using chr:pos key. In this way it can be obteined a new rsid column. When the original column was NA, it replaced it with the new rsid. Then the code creates a new column where 
+- First delete the rows where there were $-4<\beta<4$ (the first few rows) and correct a wrong base pair position. (Using ***rm_beta.sh*** to run ***RM_beta.R***) --> Create a folder **GWAS_new**, where to put new GWASs created
+- Then since there were NAs in the microbiome files use the reference file of the 1000Genomes EUR from which you took the columns "*chr:position*" and rsid. Merge with all GWAS using chr:pos key. In this way it can be obteined a new rsid column. When the original column was NA, it replaced it with the new rsid. Then the code creates a new column where 
     - 0 = rsid are equal
     - 1 = one of them is NA
     - 2 = rsids are different
