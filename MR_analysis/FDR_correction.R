@@ -6,7 +6,7 @@ library(readxl)
 dataset <- read.csv("/home/students/federica.grosso/nas/microbiome/Results_CAD/merged_MR_CAD.csv")
 
 # Select rows with IVW
-datasub <- subset(dataset, method == "Inverse variance weighted")
+datasub <- subset(dataset, method %in% c("Inverse variance weighted", "Wald ratio"))
 
 pval <- datasub$pval
 
