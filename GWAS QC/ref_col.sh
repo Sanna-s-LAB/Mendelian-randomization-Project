@@ -1,16 +1,17 @@
 #!/bin/bash
-# Definizione della directory di input
-input_directory="/home/students/federica.grosso/nas/microbiome/GWAS_new"
-# Controllo se la directory esiste
+######################################################################################
+###### RECOVER MISSING VALUES
+######################################################################################
+
+input_directory="/home/.../microbiome/GWAS_new"
 if [ ! -d "$input_directory" ]; then
   echo "Directory $input_directory non trovata."
   exit 1
 fi
-# Loop su tutti i file nella directory
+
 for input_file in "$input_directory"/new_*.tsv
 do
   echo "Elaborazione del file: $input_file"
-  # Crea un file temporaneo per ogni file di input
   awk '{print $3":"$4, $0}' "$input_file" > temp_file.txt
   awk '{ if (NR == 1) sub(/^chromosome:base_pair_location/, "SNP"); print }' temp_file.txt > "${input_file%.tsv}_SNP_file.txt"
   output_file="${input_file%.tsv}_SNP_file.txt"
