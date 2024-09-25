@@ -1,20 +1,21 @@
 library(dplyr)
-# Leggi il percorso del file dalla linea di comando
+## MERGE GWAS and REF GWAS
+
 args <- commandArgs(trailingOnly = TRUE)
 path <- args[1]
 
 dat <- read.table(path, header=T)
-dat1 <- read.table("/home/students/federica.grosso/nas/microbiome/Final_EUR_with_labels.txt", header=T)
-# Unione dei dati
+dat1 <- read.table("/home/.../microbiome/Final_EUR_with_labels.txt", header=T)
+
 merged_data <- merge(dat, dat1, by.x = "SNP", all.x = T)
 
+# Create diff_col to decide which SNP to keep
 merged_data <- merged_data %>%
-  mutate(diff_col = if_else(is.na(variant_id) | is.na(rsid), 1, if_else(variant_id == rsid, 0, 2))) %>%  # Aggiungi prima la colonna di differenza
-  mutate(variant_id = if_else(is.na(variant_id), rsid, variant_id))  # Poi sostituisci gli NA
+  mutate(diff_col = if_else(is.na(variant_id) | is.na(rsid), 1, if_else(variant_id == rsid, 0, 2))) %>%  
+  mutate(variant_id = if_else(is.na(variant_id), rsid, variant_id))  
 
-nome_file <- basename(path)
-parti <- strsplit(nome_file, split = "_")[[1]]
-output_file <- paste0("/home/students/federica.grosso/nas/microbiome/GWAS_merged/merged_", parti[2], "_", parti[3], ".txt")
+file_name <- basename(path)
+parts <- strsplit(file_name , split = "_")[[1]]
+output_file <- paste0("/home/.../microbiome/GWAS_merged/merged_", parts[2], "_", parts[3], ".txt")
 
-# Salvataggio del nuovo dataset
 write.table(merged_data, file= output_file, sep="\t", row.names=FALSE, quote=F)
