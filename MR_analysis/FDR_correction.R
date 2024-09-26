@@ -8,7 +8,8 @@ library(openxlsx)
 library(readxl)
 
 # Directory containing CSV files
-directory <- "/home/.../microbiome/Results_CAD"
+directory <- "/home/.../microbiome/Results_CAD/"
+name_exp <- "CAD"
 
 # Get the list of CSV files in the directory
 files <- list.files(directory, pattern = "\\.csv$", full.names = TRUE)
@@ -29,7 +30,7 @@ merged_df <- bind_rows(df_list, .id = "source_file")
 merged_df <- merged_df %>% select(-any_of(c("ple", "het")))
 
 # Save the merged file temporarily
-output_file_xlsx <- "/home/.../microbiome/Results_CAD/merged_MR_CAD.xlsx"
+output_file_xlsx <- paste0(directory, "merged_MR_",name_exp,".xlsx")
 write.xlsx(merged_df, output_file_xlsx)
 
 # Now apply the p-value correction
@@ -57,7 +58,7 @@ merged_data <- merged_data[, c(other_columns[1:(length(other_columns)-1)], pval_
 merged_data <- merged_data %>%
   relocate(1, .before = "egger_intercept.ple")  
 # Write the final dataset to an Excel file
-final_output <- "/home/.../microbiome/Results_CAD/merged_MR_CAD_corrected.xlsx"
+final_output <- paste0(directory, "merged_MR_",name_exp,"_corrected.xlsx")
 write.xlsx(merged_data, final_output)
 
 cat("Merging, column removal, and p-value adjustment completed. File created:", final_output, "\n")
