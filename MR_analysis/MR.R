@@ -188,8 +188,13 @@ mr_presso <- tryCatch({
   filtered_variants <- dat$SNP[dat$mr_keep != FALSE]
   all_filtered_variants <- paste(filtered_variants, collapse = "; ")
   final$IV_list <- rep(all_filtered_variants, nrow(final))
-  if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`) &&  !any(is.na(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`)) &&  mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices` != "No significant outliers"  && length(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`) > 0) {
-        outliers_indices <- mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`
+
+outliers_indices <- mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`
+if (!is.null(outliers_indices) &
+    length(outliers_indices) > 0 &
+    !any(is.na(outliers_indices)) & 
+    all(outliers_indices != "No significant outliers")) {
+  outliers_indices <- as.integer(outliers_indices)
         filtered_variants_no_outliers <- filtered_variants[-outliers_indices]
         all_filtered_variants_no_outliers <- paste(filtered_variants_no_outliers, collapse = "; ")
         final$IV_list[nrow(final)] <- all_filtered_variants_no_outliers
@@ -227,17 +232,17 @@ mr_presso <- tryCatch({
     body_add_par("Global test - Pvalue:", style = "heading 3") %>%
     body_add(mr_presso$`MR-PRESSO results`$`Global Test`$Pvalue)}
 
-  if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`)&&  mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices` != "No significant outliers" ) {
+if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`) &  all(outliers_indices != "No significant outliers")) {
   doc <- doc %>%
     body_add_par("Distortion Test - Outlier indices:", style = "heading 3") %>%
     body_add(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`)}
-  
-  if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Distortion Coefficient`) &&  !any(is.na(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Distortion Coefficient`))) {
+
+if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Distortion Coefficient`) &  !any(is.na(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Distortion Coefficient`))) {
   doc <- doc %>%
     body_add_par("Distortion Test - Distortion Coefficient:", style = "heading 3") %>%
     body_add(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Distortion Coefficient`)}
-  
-  if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$Pvalue) && !any(is.na(mr_presso$`MR-PRESSO results`$`Distortion Test`$Pvalue))) {
+
+if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$Pvalue) & !any(is.na(mr_presso$`MR-PRESSO results`$`Distortion Test`$Pvalue))) {
   doc <- doc %>%
     body_add_par("Distortion Test - Pval:", style = "heading 3") %>%
     body_add(mr_presso$`MR-PRESSO results`$`Distortion Test`$Pvalue)}
