@@ -4,4 +4,4 @@ This project is divided in 3 folders containing the codes used to perform the ma
 2. The "***MR_analysis***" folder contains the codes for the main MR analysis, sensitivity analyses, plots and FDR correction.
 3. In the folder "***Power***" there is the Rmd file to perform the power analysis
 
-The file "***All_MR_Results.xlsx***" contains all significant and non significant results of MR analysis, bidirectional MR, pleiotropy, heterogeneity and all IV for each analysis
+The file "***All_MR_Results.xlsx***" contains all significant and non significant results of MR analysis, bidirectional MR, pleiotropy, heterogeneity and all IV for each analysis (main analyses, bidirectional MR analyses, replication analyses and screening analyses).
