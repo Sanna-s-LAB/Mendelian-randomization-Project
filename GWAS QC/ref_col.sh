@@ -3,7 +3,7 @@
 ###### RECOVER MISSING VALUES
 ######################################################################################
 
-input_directory="/home/.../microbiome/GWAS_new"
+input_directory=".../GWAS_new"
 if [ ! -d "$input_directory" ]; then
   echo "Directory $input_directory non trovata."
   exit 1
