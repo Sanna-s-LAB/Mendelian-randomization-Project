@@ -7,7 +7,7 @@ require(ieugwasr)
 require(ggplot2)
 require(MRPRESSO)
 library(officer)
-source("/home/students/federica.grosso/nas/MR_PRESSO_plots.R")
+source(".../MR_PRESSO_plots.R")
 
 # Read path from command line
 args <- commandArgs(trailingOnly = TRUE)
@@ -27,7 +27,7 @@ parti_outcome <- strsplit(nome_fileO, split = "_")[[1]]
 nome_outcome <- parti_outcome[1]
 
 # Path where to save output files
-base_path <- "/home/students/federica.grosso/nas/microbiome/Results_CAD/"
+base_path <- ".../Results/"
 
 # Upload exposure file and outcome file
 dataE<-read.csv(file_path_exposure, header=T)
