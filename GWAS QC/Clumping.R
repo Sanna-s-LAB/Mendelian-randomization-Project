@@ -44,5 +44,5 @@ nome_file_senza_ext <- tools::file_path_sans_ext(nome_fileE)
 parti_nome <- strsplit(nome_file_senza_ext, "_")[[1]]
 access <- paste(parti_nome[2], sep = "_")
 
-output_file <- paste0("/home/.../microbiome/Clumping_results_no_NA/clumping_", access, ".csv")
+output_file <- paste0(".../Clumping_results_no_NA/clumping_", access, ".csv")
 write.csv(cd, file = output_file, quote=F, row.names = F)
