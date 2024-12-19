@@ -16,6 +16,6 @@ merged_data <- merged_data %>%
 
 file_name <- basename(path)
 parts <- strsplit(file_name , split = "_")[[1]]
-output_file <- paste0("/home/.../microbiome/GWAS_merged/merged_", parts[2], "_", parts[3], ".txt")
+output_file <- paste0(".../GWAS_merged/merged_", parts[2], "_", parts[3], ".txt")
 
 write.table(merged_data, file= output_file, sep="\t", row.names=FALSE, quote=F)
