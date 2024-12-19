@@ -8,8 +8,8 @@ library(openxlsx)
 library(readxl)
 
 # Directory containing CSV files
-directory <- "/home/.../microbiome/Results_CAD/"
-name_exp <- "CAD"
+directory <- ".../Results/"
+name_exp <- "exp_name"
 
 # Get the list of CSV files in the directory
 files <- list.files(directory, pattern = "\\.csv$", full.names = TRUE)
