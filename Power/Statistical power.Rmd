@@ -45,10 +45,10 @@ calculate_power_C <- function(b1, n, sig, rsq){
 ## Load of IV
 
 ```{r}
-path <- "C:\\Users\\feder_phxiw9d\\Desktop\\Tesi\\Materiale_Serena\\Results\\Results_MacularDeg\\Harm_data_E_GCST90027663_O_MACDEG.txt"
-path1 <- "C:\\Users\\feder_phxiw9d\\Desktop\\Tesi\\Materiale_Serena\\Results\\Results_AMD2\\Harm_data_E_GCST90027663_O_AMD2.txt"
-path2 <- "C:\\Users\\feder_phxiw9d\\Desktop\\Tesi\\Materiale_Serena\\Results\\Results_EarlyAMD\\Harm_data_E_GCST90027663_O_EarlyAMD.txt"
-path3 <- "C:\\Users\\feder_phxiw9d\\Desktop\\Tesi\\Materiale_Serena\\Results\\Other_analysis\\Results_Fingen\\Harm_data_E_GCST90027663_O_AMD.txt"
+path <- "...\\Harm_data_E_GCST90027663_O_MACDEG.txt"
+path1 <- "...\\Harm_data_E_GCST90027663_O_AMD2.txt"
+path2 <- "...\\Harm_data_E_GCST90027663_O_EarlyAMD.txt"
+path3 <- "...\\Harm_data_E_GCST90027663_O_AMD.txt"
 data <- read.table(path, sep = "\t")
 data <- data[data$mr_keep != FALSE, ]
 data1 <- read.table(path1, sep = "\t")
@@ -169,9 +169,9 @@ ggplot(results, aes(x = Beta, y = Power, color = as.factor(Ratio))) +
 ## Load of IV
 
 ```{r}
-path <- "C:\\Users\\feder_phxiw9d\\Desktop\\Tesi\\Materiale_Serena\\Results\\Other_analysis\\Results_LACT_In15\\Harm_data_E_GCST90027488_O_In15.txt"
-path1 <-"C:\\Users\\feder_phxiw9d\\Desktop\\Tesi\\Materiale_Serena\\Results\\Other_analysis\\Results_LACT_In15_REP\\Harm_data_E_GCST90027488_O_In15.txt"
-path2 <- "C:\\Users\\feder_phxiw9d\\Desktop\\Tesi\\Materiale_Serena\\Results\\Other_analysis\\Results_LACT_In15_REP\\Harm_data_E_GCST90027488_O_In15_3.txt"
+path <- "...\\Harm_data_E_GCST90027488_O_In15.txt"
+path1 <-"...\\Harm_data_E_GCST90027488_O_In15.txt"
+path2 <- "...\\Harm_data_E_GCST90027488_O_In15_3.txt"
 data <- read.table(path, sep = "\t")
 data <- data[data$mr_keep != FALSE, ]
 data1 <- read.table(path1, sep = "\t")
@@ -276,8 +276,8 @@ ggplot(results, aes(x = Beta, y = Power, color = as.factor(SampleSize))) +
 ## Load of IV
 
 ```{r}
-path <- "C:\\Users\\feder_phxiw9d\\Desktop\\Tesi\\Materiale_Serena\\Results\\Results_IP_all\\Harm_data_E_GCST90027488_O_GCST90274843.txt"
-path1 <- "C:\\Users\\feder_phxiw9d\\Desktop\\Tesi\\Materiale_Serena\\Results\\Other_analysis\\Results_LACT_TRAIL\\Harm_data_E_GCST90027488_O_TRAIL.txt"
+path <- "...\\Harm_data_E_GCST90027488_O_GCST90274843.txt"
+path1 <- "...\\Harm_data_E_GCST90027488_O_TRAIL.txt"
 data <- read.table(path, sep = "\t")
 data <- data[data$mr_keep != FALSE, ]
 data1 <- read.table(path1, sep = "\t")
@@ -369,9 +369,9 @@ ggplot(results, aes(x = Beta, y = Power, color = as.factor(SampleSize))) +
 ## Load IV
 
 ```{r}
-path <-"C:\\Users\\feder_phxiw9d\\Desktop\\Tesi\\Materiale_Serena\\Results\\Results_IP_all\\Harm_data_E_GCST90027754_O_GCST90274846.txt" # 1 vs 1
-path1 <- "C:\\Users\\feder_phxiw9d\\Desktop\\Tesi\\Materiale_Serena\\Results\\Other_analysis\\Results_ado_TNFSF12\\Harm_data_E_GCST90032220_O_TNFSF12.txt" # 2 vs 1
-path2 <- "C:\\Users\\feder_phxiw9d\\Desktop\\Tesi\\Materiale_Serena\\Results\\Other_analysis\\Results_GCST90027754_TNFSF12\\Harm_data_E_GCST90027754_O_TNFSF12.txt" # 1 vs 2
+path <-"...\\Harm_data_E_GCST90027754_O_GCST90274846.txt" # 1 vs 1
+path1 <- "...\\Results_ado_TNFSF12\\Harm_data_E_GCST90032220_O_TNFSF12.txt" # 2 vs 1
+path2 <- "...\\Results_GCST90027754_TNFSF12\\Harm_data_E_GCST90027754_O_TNFSF12.txt" # 1 vs 2
 data <- read.table(path, sep = "\t")
 data <- data[data$mr_keep != FALSE, ]
 data1 <- read.table(path1, sep = "\t")
