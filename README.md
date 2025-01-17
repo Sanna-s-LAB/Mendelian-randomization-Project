@@ -7,4 +7,4 @@ This project is divided in 3 folders containing the codes used to perform the ma
 The file "***All_MR_Results.xlsx***" contains all significant and non significant results of MR analysis, bidirectional MR, pleiotropy, heterogeneity and all IV for each analysis (main analyses, bidirectional MR analyses, replication analyses and screening analyses).
 
 **Use of AI statement:**
-<u>We</u> acknowledge the use of artificial intelligence tools, namely ChatGPT 4.0, to improve code efficiency, particularly to reduce the development time of clear and accurate result tables. 
+We acknowledge the use of artificial intelligence tools, namely ChatGPT 4.0, to improve code efficiency, particularly to reduce the development time of clear and accurate result tables. 
