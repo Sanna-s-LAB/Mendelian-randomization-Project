@@ -8,4 +8,3 @@ The file "***All_MR_Results.xlsx***" contains all significant and non significan
 
 << **Use of AI statement:**
 We acknowledge the use of artificial intelligence tools, namely ChatGPT 4.0, to improve code efficiency, particularly to reduce the development time of clear and accurate result tables. >>
-Davide Murrau
