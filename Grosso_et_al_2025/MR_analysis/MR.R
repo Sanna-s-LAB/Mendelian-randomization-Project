@@ -2,10 +2,10 @@
 ### Libraries
 ################################################################################
 library(dplyr)
-require(TwoSampleMR)
-require(ieugwasr)
-require(ggplot2)
-require(MRPRESSO)
+library(TwoSampleMR)
+library(ieugwasr)
+library(ggplot2)
+library(MRPRESSO)
 library(officer)
 source(".../MR_PRESSO_plots.R")
 
