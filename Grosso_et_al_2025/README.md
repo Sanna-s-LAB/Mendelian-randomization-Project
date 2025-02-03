@@ -1,5 +1,5 @@
 # Causal relationships between gut microbiome and age-related traits
-Scripts used for Mendelian randomization analysis in the paper Grosso et al., 2025.
+Scripts used for Mendelian randomization analysis in the paper *Grosso et al. (2025)*.
 
 Date released: 03/02/2025
 
