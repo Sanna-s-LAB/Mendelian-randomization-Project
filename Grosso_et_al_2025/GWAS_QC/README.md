@@ -9,4 +9,4 @@ This is done running ***ref_col.sh*** file to run ***merge.R***.
     
 - Finally, it creates a "rsid_to_use" column with all the rsids of the microbiome when they are there and are the same as those of the reference, those of the 1KGP reference when they are different or when the microbiome has NA → ***final_column.sh*** which put final files in the **GWAS_final** folder
 
-- Use the function "***run_clumping.sh***" to run ***Clumping.R*** to do clumping (in this case with $5\cdot 10^{-6}$, but usually with $5\cdot 10^{-8}$)
+- Use the function "***run_clumping.sh***" to run ***Clumping.R*** to do clumping (in this case with $p=5\cdot 10^{-6}$, but usually with $p=5\cdot 10^{-8}$)
