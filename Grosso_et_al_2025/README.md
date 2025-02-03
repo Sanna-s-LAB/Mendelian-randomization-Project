@@ -11,4 +11,4 @@ We acknowledge the use of artificial intelligence tools, namely ChatGPT 4.0, to 
 
 
 ***QUESTIONS?*** 
-For questions regarding the code please contact Federica Grosso (federica.grosso@cnr.it) or Serena Sanna (serena.sanna@cnr.it)
+For questions regarding the code please contact Federica Grosso (federicagrosso@cnr.it) or Serena Sanna (serena.sanna@cnr.it)
