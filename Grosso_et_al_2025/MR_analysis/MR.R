@@ -130,7 +130,7 @@ mr_presso <- tryCatch({
                          NbDistribution = 1000, seed = 1)
   result  
   }, error = function(e) {
-    # Gestisci l'errore
+    # Manage error
     cat("Errore nell'esecuzione di mr_presso:", e$message, "\n")
     NULL  # If there is an error
   })
@@ -141,7 +141,7 @@ mr_presso <- tryCatch({
 
   output_file <- paste0(base_path,"MRallRES_E_", nome_exposure, "_O_", nome_outcome, ".csv")
 
-# Add MR-PRESSo row
+# Add MR-PRESSO row
   if (!is.null(mr_presso)) {
     mr_results[nrow(mr_results) + 1, ] <- mr_results[nrow(mr_results), ] 
     
@@ -181,7 +181,13 @@ mr_presso <- tryCatch({
  } else  {
   het <- data.frame(het = rep(NA, nrow(mr_results)))
 }
-  
+
+# Save scatter plot with Inverse Variance Weighted, Weighted Median and MR-PRESSO
+mr_results <- mr_results[mr_results$method != "MR Egger", ]
+p4 <- mr_scatter_plot(mr_results,dat)
+print(p4)
+ggsave("/.../SP_CAD.png", plot = p1[[1]], width= 6, height=6 , dpi = 300)
+
 # Add variants column  
   final <- cbind(mr_results,ple,het)
   final <- final[, !colnames(final) %in% c("id.exposure.ple", "id.outcome.ple","outcome.ple","exposure.ple","method.het","id.exposure.het", "id.outcome.het","outcome.het","exposure.het")]
@@ -189,23 +195,24 @@ mr_presso <- tryCatch({
   all_filtered_variants <- paste(filtered_variants, collapse = "; ")
   final$IV_list <- rep(all_filtered_variants, nrow(final))
 
-outliers_indices <- mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`
-if (!is.null(outliers_indices) &
-    length(outliers_indices) > 0 &
-    !any(is.na(outliers_indices)) & 
-    all(outliers_indices != "No significant outliers")) {
-  outliers_indices <- as.integer(outliers_indices)
-        filtered_variants_no_outliers <- filtered_variants[-outliers_indices]
-        all_filtered_variants_no_outliers <- paste(filtered_variants_no_outliers, collapse = "; ")
-        final$IV_list[nrow(final)] <- all_filtered_variants_no_outliers
-    } else {
-        final$IV_list[nrow(final)] <- all_filtered_variants
-    }
+if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`) &&
+    !all(is.na(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`)) &&
+    !identical(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`, "No significant outliers") &&
+    length(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`) > 0) 
+{
+    outliers_indices <- mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`
+    filtered_variants_no_outliers <- filtered_variants[-outliers_indices]
+    all_filtered_variants_no_outliers <- paste(filtered_variants_no_outliers, collapse = "; ")
+    final$IV_list[nrow(final)] <- all_filtered_variants_no_outliers
+} else {
+    final$IV_list[nrow(final)] <- all_filtered_variants
+}
 	
- write.csv(final, file = output_file, quote=F, row.names = F)
+write.csv(final, file = output_file, quote=F, row.names = F)
 
 ################################################################################################################################################
 ##### MR-PRESSO single results
+######################################################################################################################
  output_file <- paste0(base_path,"MR_PRESSO/MR_PRESSO_E_", nome_exposure, "_O_", nome_outcome, ".docx") 
    doc <- read_docx()
    doc <- doc %>%
@@ -232,17 +239,20 @@ if (!is.null(outliers_indices) &
     body_add_par("Global test - Pvalue:", style = "heading 3") %>%
     body_add(mr_presso$`MR-PRESSO results`$`Global Test`$Pvalue)}
 
-if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`) &  all(outliers_indices != "No significant outliers")) {
+if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`) &&
+    !all(is.na(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`)) &&
+    !identical(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`, "No significant outliers") &&
+    length(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`) > 0) {
   doc <- doc %>%
     body_add_par("Distortion Test - Outlier indices:", style = "heading 3") %>%
     body_add(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`)}
 
-if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Distortion Coefficient`) &  !any(is.na(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Distortion Coefficient`))) {
+if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Distortion Coefficient`) &&  !any(is.na(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Distortion Coefficient`))) {
   doc <- doc %>%
     body_add_par("Distortion Test - Distortion Coefficient:", style = "heading 3") %>%
     body_add(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Distortion Coefficient`)}
 
-if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$Pvalue) & !any(is.na(mr_presso$`MR-PRESSO results`$`Distortion Test`$Pvalue))) {
+if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$Pvalue) && !any(is.na(mr_presso$`MR-PRESSO results`$`Distortion Test`$Pvalue))) {
   doc <- doc %>%
     body_add_par("Distortion Test - Pval:", style = "heading 3") %>%
     body_add(mr_presso$`MR-PRESSO results`$`Distortion Test`$Pvalue)}
@@ -262,6 +272,7 @@ p1 <- mr_scatter_plot_col(mr_results,dat,dat_kept,dat_removed)
 print(p1)
 p2 <- mr_scatter_plot_IVW(mr_results,mr_results_kept,dat,dat_kept,dat_removed)
 print(p2)
+
 dev.off()
 
 rm(list = ls())
