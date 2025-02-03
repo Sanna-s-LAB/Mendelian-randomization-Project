@@ -1,1 +1,1 @@
-In this folder there is the Rmd file ***"Statistical_power.Rmd"*** with the power analysis for a binary trait (Age-Related Macular Degeneration) and continuous traits (IL-15R $\alpha$, TRAIL, TNFSF12).
+In this folder there is the Rmd file ***"Statistical_power.Rmd"*** with the power analysis for the significant results of MR analyses and their replication: with a binary trait (Age-Related Macular Degeneration) and continuous traits (IL-15R $\alpha$, TRAIL, TNFSF12).
