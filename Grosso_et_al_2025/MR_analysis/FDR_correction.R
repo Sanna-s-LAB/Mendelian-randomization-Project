@@ -49,14 +49,6 @@ data2 <- data.frame(pval = pval, pval_adj = pval_adj)
 # Merge the original dataset with the adjusted p-values, matching on 'pval'
 merged_data <- merge(merged_df, data2, by = "pval", all = TRUE)
 
-# Rearrange the columns: move pval_adj to the last position
-pval_adj_index <- grep("pval_adj", colnames(merged_data))  # Find the index of 'pval_adj'
-other_columns <- setdiff(1:ncol(merged_data), pval_adj_index)  # All columns except 'pval_adj'
-merged_data <- merged_data[, c(other_columns[1:(length(other_columns)-1)], pval_adj_index, other_columns[length(other_columns)])]
-
-
-merged_data <- merged_data %>%
-  relocate(1, .before = "egger_intercept.ple")  
 # Write the final dataset to an Excel file
 final_output <- paste0(directory, "merged_MR_",name_exp,"_corrected.xlsx")
 write.xlsx(merged_data, final_output)
