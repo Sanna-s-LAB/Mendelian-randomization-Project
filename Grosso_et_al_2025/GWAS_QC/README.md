@@ -1,5 +1,5 @@
 These files are used to to the standard quality control of GWAS files pre-MR and clumping.
-- First delete the rows where there were $-4<\beta<4$ (the first few rows) and correct a wrong base pair position. (Using ***rm_beta.sh*** to run ***RM_beta.R***) -> Create a folder **GWAS_new**, where to put new GWASs created
+- First delete the rows where there were $-4<\beta<4$ (the first few rows) and correct a wrong base pair position. (Using ***rm_beta.sh*** to run ***RM_beta.R***) $\to$ Create a folder **GWAS_new**, where to put new GWASs created
 - Then since there were NAs in the microbiome files use the reference file of the 1000Genomes EUR from which you took the columns "*chr:position*" and rsid. Merge with all GWAS using chr:pos key. In this way it can be obteined a new rsid column. When the original column was NA, it replaced it with the new rsid. Then the code creates a new column where 
     - 0 = rsid are equal
     - 1 = one of them is NA
