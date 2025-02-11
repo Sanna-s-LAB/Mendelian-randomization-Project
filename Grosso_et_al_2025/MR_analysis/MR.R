@@ -118,12 +118,13 @@ dev.off()
 ################################################################################
 ### MR-PRESSO
 ################################################################################
+dat1 <- dat %>% filter(mr_keep)
 mr_presso <- tryCatch({
   result <- mr_presso(BetaOutcome="beta.outcome", 
                          BetaExposure="beta.exposure", 
                          SdOutcome="se.outcome", 
                          SdExposure="se.exposure", 
-                         data=dat, 
+                         data=dat1, 
                          OUTLIERtest = TRUE, 
                          DISTORTIONtest = TRUE, 
                          SignifThreshold = 0.05, 
@@ -142,43 +143,48 @@ mr_presso <- tryCatch({
   output_file <- paste0(base_path,"MRallRES_E_", nome_exposure, "_O_", nome_outcome, ".csv")
 
 # Add MR-PRESSO row
-  if (!is.null(mr_presso)) {
-    mr_results[nrow(mr_results) + 1, ] <- mr_results[nrow(mr_results), ] 
-    
-    if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`)){
-      mr_results[nrow(mr_results), "nsnp"] <- mr_results$nsnp[1]- length(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`)
+if (!is.null(mr_presso)) {
+  mr_results[nrow(mr_results) + 1, ] <- mr_results[nrow(mr_results), ] 
+  outliers_indices <- mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`
+  
+  if (!is.null(outliers_indices)) {
+    if (!"All SNPs considered as outliers" %in% outliers_indices) {
+      mr_results[nrow(mr_results), "nsnp"] <- mr_results$nsnp[1] - length(outliers_indices)
     } else {
-      mr_results[nrow(mr_results), "nsnp"] <- mr_results$nsnp[1]
+      mr_results[nrow(mr_results), "nsnp"] <- 0
     }
-    mr_results[nrow(mr_results), "method"] <- "MR-PRESSO"
-    mr_results[nrow(mr_results), "b"] <- mr_presso$`Main MR results`$`Causal Estimate`[1]
-    mr_results[nrow(mr_results), "se"] <- mr_presso$`Main MR results`$Sd[1]
-    mr_results[nrow(mr_results), "pval"] <- mr_presso$`Main MR results`$`P-value`[1]
-  } else { # If MR-PRESSO doesn't detect outliers
-    mr_results[nrow(mr_results) + 1, ] <- mr_results[nrow(mr_results), ] 
-    mr_results[nrow(mr_results), "method"] <- "MR-PRESSO"
-    mr_results[nrow(mr_results), "b"] <- NA
-    mr_results[nrow(mr_results), "se"] <- NA
-    mr_results[nrow(mr_results), "pval"] <- NA
+  } else {
+    mr_results[nrow(mr_results), "nsnp"] <- mr_results$nsnp[1]
   }
+  mr_results[nrow(mr_results), "method"] <- "MR-PRESSO"
+  mr_results[nrow(mr_results), "b"] <- mr_presso$`Main MR results`$`Causal Estimate`[1]
+  mr_results[nrow(mr_results), "se"] <- mr_presso$`Main MR results`$Sd[1]
+  mr_results[nrow(mr_results), "pval"] <- mr_presso$`Main MR results`$`P-value`[1]
+} else { # If MR-PRESSO doesn't detect outliers
+  mr_results[nrow(mr_results) + 1, ] <- mr_results[nrow(mr_results), ] 
+  mr_results[nrow(mr_results), "method"] <- "MR-PRESSO"
+  mr_results[nrow(mr_results), "b"] <- NA
+  mr_results[nrow(mr_results), "se"] <- NA
+  mr_results[nrow(mr_results), "pval"] <- NA
+}
 
-# Add pleiotropy and heterogeneity to the file
- if (!is.null(ple) && nrow(ple) > 0 && ncol(ple) > 0){
+# Add ple and heterogeneity to the file
+if (!is.null(ple) && nrow(ple) > 0 && ncol(ple) > 0){
   ple <- ple %>%
     rename_with(~paste0(., ".ple"))
-	while(nrow(ple) < nrow(mr_results)) {
-  ple[nrow(ple) + 1, ] <- NA
-	}
-  } else {
+  while(nrow(ple) < nrow(mr_results)) {
+    ple[nrow(ple) + 1, ] <- NA
+  }
+} else {
   ple <- data.frame(ple = rep(NA, nrow(mr_results)))
 }
-  if (!is.null(het) && nrow(het) > 0 && ncol(het) > 0) {
+if (!is.null(het) && nrow(het) > 0 && ncol(het) > 0) {
   het <- het %>%
     rename_with(~ paste0(.,".het"))
   while(nrow(het) < nrow(mr_results)) {
-	het[nrow(het) + 1, ] <- NA
-}
- } else  {
+    het[nrow(het) + 1, ] <- NA
+  }
+} else  {
   het <- data.frame(het = rep(NA, nrow(mr_results)))
 }
 
@@ -189,23 +195,34 @@ print(p4)
 ggsave("/.../SP_CAD.png", plot = p1[[1]], width= 6, height=6 , dpi = 300)
 
 # Add variants column  
-  final <- cbind(mr_results,ple,het)
-  final <- final[, !colnames(final) %in% c("id.exposure.ple", "id.outcome.ple","outcome.ple","exposure.ple","method.het","id.exposure.het", "id.outcome.het","outcome.het","exposure.het")]
-  filtered_variants <- dat$SNP[dat$mr_keep != FALSE]
-  all_filtered_variants <- paste(filtered_variants, collapse = "; ")
-  final$IV_list <- rep(all_filtered_variants, nrow(final))
+final <- cbind(mr_results,ple,het)
+final <- final[, !colnames(final) %in% c("id.exposure.ple", "id.outcome.ple","outcome.ple","exposure.ple","method.het","id.exposure.het", "id.outcome.het","outcome.het","exposure.het")]
+filtered_variants <- dat$SNP[dat$mr_keep != FALSE]
+all_filtered_variants <- paste(filtered_variants, collapse = "; ")
+final$IV_list <- rep(all_filtered_variants, nrow(final))
 
 if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`) &&
     !all(is.na(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`)) &&
     !identical(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`, "No significant outliers") &&
     length(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`) > 0) 
 {
-    outliers_indices <- mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`
+  outliers_indices <- mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`
+  print(outliers_indices)
+  # Ensure it's numeric
+  if (is.numeric(outliers_indices) && length(outliers_indices) > 0) {
     filtered_variants_no_outliers <- filtered_variants[-outliers_indices]
     all_filtered_variants_no_outliers <- paste(filtered_variants_no_outliers, collapse = "; ")
     final$IV_list[nrow(final)] <- all_filtered_variants_no_outliers
-} else {
+  } else if (outliers_indices == "All SNPs considered as outliers") 
+  {
+    final$IV_list[nrow(final)]<- NA
+  }
+  else
+  {
     final$IV_list[nrow(final)] <- all_filtered_variants
+  }
+} else {
+  final$IV_list[nrow(final)] <- all_filtered_variants
 }
 	
 write.csv(final, file = output_file, quote=F, row.names = F)
