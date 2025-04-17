@@ -5,7 +5,7 @@ require(MRPRESSO)
 library(officer)
 library(ggplot2)
 # Function for IVW before and after MR-PRESSO
-
+# Example of results are available in the "/Supplementary_figures/MR-PRESSO/" folder 
 mr_scatter_plot_IVW <- function(mr_results,mr_results2, dat, dat_kept, dat_removed)
 {
   mr_results <- subset(mr_results, method == "Inverse variance weighted")
