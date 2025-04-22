@@ -1625,8 +1625,8 @@ write.xlsx(Sig4 ,"~/Results tables/Table_cochran_after_leaveoneout.xlsx")
 
 
 ##### LIFELINES #####
-
-pairs_for_lifelines <-  Sig4 %>%
+sig <- read_excel("~/Results tables/Table_cochran_after_leaveoneout.xlsx")
+pairs_for_lifelines <-  sig %>%
   dplyr::filter(SignificantBysex_CISTRANS %in% c(1,2) | (SignificantBysex_CISTRANS %in% c(3,4) & Q_Cochran_pvalue_CISTRANS<0.05) ) %>%
   dplyr::select("exposure", "outcome") %>%
   distinct()
