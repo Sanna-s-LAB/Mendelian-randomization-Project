@@ -45,8 +45,8 @@ significant_long <- significant %>%
     ),
     highlight_Cochran = if_else(Cochran == "yes", TRUE, FALSE),
     symbol1 = case_when(
-      Sex == "Men" & Cochran == "yes" ~ "#",
-      Sex == "Women" & Cochran == "yes" ~ "#",
+      Sex == "Men" & Cochran == "yes" ~ "†",
+      Sex == "Women" & Cochran == "yes" ~ "†",
       TRUE ~ ""
     ),
     color_group = case_when(
@@ -71,7 +71,7 @@ plots <- significant_long %>%
       geom_text(aes(x = min_x, label = symbol), 
                 color = "black", size = 7, vjust = 0.72) +
       geom_text(aes(x = min_x, label = symbol1), 
-                color = "black", size = 4, vjust = 0.52, hjust=2) +
+                color = "black", size = 5, vjust = 0.52, hjust=2) +
       geom_point(position = position_dodge(width = 0.6), size = 2.5) +
       geom_errorbarh(aes(xmin = ci_lower, xmax = ci_upper),
                      position = position_dodge(width = 0.6),
@@ -119,9 +119,9 @@ plots[[5]]
 
 for (i in 1:5) {
   ggsave(
-    filename = paste0("~/Results tables/plot_outcome_WMtogether", i, ".pdf"),
+    filename = paste0("~/Results tables/plot_outcome_WMtogether", i, ".jpeg"),
     plot = plots[[i]],
-    device = "psignificant",
+    device = "jpeg",
     width = 7,
     height = 11,
     units = "in",
