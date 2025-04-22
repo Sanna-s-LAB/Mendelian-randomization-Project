@@ -79,9 +79,9 @@ plots <- significant_long %>%
       geom_vline(xintercept = 0, linetype = "dashed", color = "gray40") +
       scale_color_manual(
         values = c(
-          "Women_significant" = "#e41a1c",  # Rosso
-          "Men_significant" = "#377eb8",    # Blu
-          "Not_significant" = "gray70"      # Grigio
+          "Women_significant" = "#e41a1c",  # Red
+          "Men_significant" = "#377eb8",    # Blue
+          "Not_significant" = "gray70"      # Grey
         ),
         labels = c(
           "Women_significant" = "Women (Significant)",
