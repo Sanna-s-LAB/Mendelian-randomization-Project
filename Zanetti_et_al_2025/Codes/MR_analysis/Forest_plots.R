@@ -119,9 +119,9 @@ plots[[5]]
 
 for (i in 1:5) {
   ggsave(
-    filename = paste0("~/Results tables/plot_outcome_WMtogether", i, ".jpeg"),
+    filename = paste0("/home/res-fellows/federica.grosso/nas/Daniela/Results tables/plot_outcome_WMtogether", i, ".pdf"),
     plot = plots[[i]],
-    device = "jpeg",
+    device = cairo_pdf,
     width = 7,
     height = 11,
     units = "in",
