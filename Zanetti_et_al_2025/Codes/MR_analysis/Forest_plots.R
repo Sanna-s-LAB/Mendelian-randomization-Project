@@ -5,10 +5,10 @@ library(ggplot2)
 library(ggtext)
 
 # Upload useful data 
-lifelines <- read_excel("/home/res-fellows/federica.grosso/nas/Daniela/Results tables/Table_LIFELINES_after_leaveoneout.xlsx", sheet = 1)
+lifelines <- read_excel("~/Results tables/Table_LIFELINES_after_leaveoneout.xlsx", sheet = 1)
 lifelines <- subset(lifelines, select=c("exposure","outcome","Consistency_GLGC_Lifelines"))
 lifelines <- lifelines %>% distinct()
-significant <- read_excel("/home/res-fellows/federica.grosso/nas/Daniela/Results tables/Table_of_significant_main_for_forest_plots.xlsx", sheet = 1)
+significant <- read_excel("~/Results tables/Table_of_significant_main_for_forest_plots.xlsx", sheet = 1)
 
 
 significant <- merge(significant, lifelines, all.x = TRUE)
@@ -119,7 +119,7 @@ plots[[5]]
 
 for (i in 1:5) {
   ggsave(
-    filename = paste0("C:\\Users\\feder_phxiw9d\\Desktop\\Work_Projects\\Danielas_project\\Final_tables\\plot_outcome_WMtogether", i, ".psignificant"),
+    filename = paste0("~/Results tables/plot_outcome_WMtogether", i, ".pdf"),
     plot = plots[[i]],
     device = "psignificant",
     width = 7,
