@@ -3,12 +3,16 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(ggtext)
+library(ggVennDiagram)
+library(patchwork)
 
+
+##### Forest plots ######
 # Upload useful data 
 lifelines <- read_excel("~/Results tables/Table_LIFELINES_after_leaveoneout.xlsx", sheet = 1)
 lifelines <- subset(lifelines, select=c("exposure","outcome","Consistency_GLGC_Lifelines"))
 lifelines <- lifelines %>% distinct()
-significant <- read_excel("~/Results tables/Table_of_significant_main_for_forest_plots.xlsx", sheet = 1)
+significant <- read_excel("~/Results tables/Table_of_significant_results.xlsx", sheet = 1)
 
 
 significant <- merge(significant, lifelines, all.x = TRUE)
@@ -119,7 +123,7 @@ plots[[5]]
 
 for (i in 1:5) {
   ggsave(
-    filename = paste0("/home/res-fellows/federica.grosso/nas/Daniela/Results tables/plot_outcome_WMtogether", i, ".pdf"),
+    filename = paste0("~/Results tables/plot_outcome_WMtogether", i, ".pdf"),
     plot = plots[[i]],
     device = cairo_pdf,
     width = 7,
@@ -129,5 +133,37 @@ for (i in 1:5) {
   )
 }
 
+##### Venn diagrams #####
 
+significant <- read_excel("~/Results tables/Table_of_significant_results.xlsx", sheet = 1)
 
+sig_women <- significant %>%
+  filter(SignificantBysex_CISTRANS %in% c(1)) %>%
+  select(exposure, outcome) %>%
+  distinct()
+
+sig_men <- significant %>%
+  filter(SignificantBysex_CISTRANS %in% c(2)) %>%
+  select(exposure, outcome) %>%
+  distinct()
+
+# Create list of proteins per outcome in women and men
+sets_women <- split(sig_women$exposure, sig_women$outcome)
+sets_men <- split(sig_men$exposure, sig_men$outcome)
+
+venn_women <- ggVennDiagram(sets_women, label_alpha = 0, label = "count") +
+  scale_fill_gradient(name = "protein\ncount", low = "#FEECEC", high = "#D73027") +
+  ggtitle("Women") +
+  theme(text = element_text(size = 12), 
+        plot.title = element_text(hjust = 0.5, size = 19)) 
+
+venn_men <- ggVennDiagram(sets_men, label_alpha = 0, label = "count") +
+  scale_fill_gradient(name = "protein\ncount", low = "#F4FAFE", high = "#4981BF") +
+  ggtitle("Men") +
+  theme(text = element_text(size = 12), 
+        plot.title = element_text(hjust = 0.5, size = 19))  
+
+venn_plot <- venn_women + plot_spacer() + venn_men + plot_layout(widths = c(1, 0.12, 1))
+venn_plot
+
+ggsave("~/Results tables/Figure_4.pdf", plot = venn_plot, width = 16, height = 8, dpi = 300)
