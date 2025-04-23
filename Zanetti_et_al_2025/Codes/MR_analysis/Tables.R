@@ -1504,7 +1504,10 @@ all<- read_excel("~/Results tables/Final_results_with_column.xlsx")
 all<- subset(all,select = c("exposure","outcome","method","IV_list.women","IV_list.men"))
 
 # Select leave-one-out results only for significant after bidirectional for women and men
-sig <- New2_clean
+sig <- New2_clean %>%
+  group_by(exposure, outcome)%>%
+  filter(SignificantBysex_CISTRANS_new != 5) 
+
 sig_pairs_W <- sig %>%
   dplyr::filter(SignificantBysex_CISTRANS %in% c(1)) %>%
   dplyr::select("exposure", "outcome") %>%
