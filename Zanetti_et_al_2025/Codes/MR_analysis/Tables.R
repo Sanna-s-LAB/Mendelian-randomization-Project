@@ -1528,8 +1528,12 @@ toremove_W <- subset(toremove_W, select=c("exposure","outcome","driving_SNP"))
 a <- rbind(list_to_keep_W,toremove_W)
 
 loo_W1 <- merge(loo_W,a, by=c("exposure","outcome"), all.x=T)
-loo_W1$sex<-"F"
+loo_W1$sex<-"W"
 loo_W1$driving_SNP[is.na(loo_W1$driving_SNP)] <- "no"
+loo_W1 <- loo_W1 %>%
+  mutate(driving_SNP = if_else(driving_SNP == "yes" & p < 0.05,
+                               "no but another SNP in the IV is",
+                               driving_SNP))
 
 sig_pairs_M <- sig %>%
   dplyr::filter(SignificantBysex_CISTRANS %in% c(2)) %>%
@@ -1554,6 +1558,10 @@ a <-distinct(a)
 loo_M1 <- merge(loo_M,a, by=c("exposure","outcome"), all.x=T)
 loo_M1$sex<-"M"
 loo_M1$driving_SNP[is.na(loo_M1$driving_SNP)] <- "no"
+loo_M1 <- loo_M1 %>%
+  mutate(driving_SNP = if_else(driving_SNP == "yes" & p < 0.05,
+                               "no but another SNP in the IV is",
+                               driving_SNP))
 
 final_LOO <- rbind(loo_W1,loo_M1)
 proteins <- read.table("~/ProteinsNames_new.csv",header=T,as.is=T,sep=",")
