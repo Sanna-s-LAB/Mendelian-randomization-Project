@@ -2,7 +2,7 @@
 
 
 
-**Supplementary Figures 1.** Scatter plots performed across all MR methods tested in our study and the leave-one-out sensitivity analysis for the MR carried out considering all available instrument variables (cis+trans). Each black point in the forest plot represents the MR analysis (using the inverse variance weighting method) excluding that particular SNP. The overall analysis including all SNPs is also shown for comparison. **A.** In women.**B.** In men. **C.** In the full dataset. 
+**Supplementary Figures 1.** Scatter plots performed across all MR methods tested in our study and the leave-one-out sensitivity analysis for the MR carried out considering all available instrument variables (cis+trans). Each black point in the forest plot represents the MR analysis (using the inverse variance weighting method) excluding that particular SNP. The overall analysis including all SNPs is also shown for comparison. **A.** In women. **B.** In men. **C.** In the full dataset. 
 
 
 **Supplementary Figures 2.** Scatter plots performed across all MR methods tested in our study and the leave-one-out sensitivity analysis for the MR carried out considering  in-cis only IVs. Each black point in the forest plot represents the MR analysis (using the inverse variance weighting method) excluding that particular SNP. The overall analysis including all SNPs is also shown for comparison. **A.** In women. **B.** In men. **C.** In the full dataset. 
