@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BASE_DIR="/home/res-fellows/federica.grosso/nas/microbiome/Outcomes/ProteinsUKBB2023_merged"
+BASE_DIR="~/microbiome/Outcomes/ProteinsUKBB2023_merged"
 
 find "$BASE_DIR" -mindepth 1 -maxdepth 1 -type d | while read subfolder; do
     echo "Unione file in: $subfolder"
@@ -12,10 +12,10 @@ find "$BASE_DIR" -mindepth 1 -maxdepth 1 -type d | while read subfolder; do
     output_file="$BASE_DIR/${foldername}.gz"
 
     {
-        # Primo file completo (intestazione + dati)
+        # First file with the headers
         zcat "${files[0]}"
 
-        # Altri file senza intestazione
+        # Other files without headers
         for f in "${files[@]:1}"; do
             zcat "$f" | tail -n +2
         done
