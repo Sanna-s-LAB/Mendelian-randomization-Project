@@ -62,11 +62,14 @@ new_males <- new_males %>%
 
 # FDR correction 
 
-result_IVW <- new_males %>%
-  filter(method == "Inverse variance weighted")
+# result_IVW <- new_males %>%
+#   filter(method == "Inverse variance weighted")
+# 
+# result_WR <- new_males %>%
+#   filter(method == "Wald ratio")
 
-result_WR <- new_males %>%
-  filter(method == "Wald ratio")
+result_main <- new_males %>%
+     filter(method == "Inverse variance weighted" | method=="Wald ratio")
 
 result_Egger <- new_males %>%
   filter(method == "MR Egger")
@@ -83,13 +86,16 @@ result_PRESSO <- new_males %>%
 
 result_PRESSO$fdr.men <- c("NA")
 
-names(result_IVW)
+#names(result_IVW)
 
-result_IVW$fdr.men<-p.adjust(result_IVW$pval.men, method="BH")
+#result_IVW$fdr.men<-p.adjust(result_IVW$pval.men, method="BH")
 
-result_WR$fdr.men<-p.adjust(result_WR$pval.men, method="BH")
+#result_WR$fdr.men<-p.adjust(result_WR$pval.men, method="BH")
 
-men_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+result_main$fdr.men<-p.adjust(result_main$pval.men, method="BH")
+#men_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+
+men_all <- rbind(result_main,result_Egger,result_WM, result_PRESSO)
 
 str(men_all)
 men_all$fdr.men<- as.numeric(men_all$fdr.men)
@@ -144,11 +150,15 @@ new_women <- new_women %>%
   ungroup()
 
 # FDR correction
-result_IVW <- new_women %>%
-  filter(method == "Inverse variance weighted")
 
-result_WR <- new_women %>%
-  filter(method == "Wald ratio")
+# result_IVW <- new_women %>%
+#   filter(method == "Inverse variance weighted")
+# 
+# result_WR <- new_women %>%
+#   filter(method == "Wald ratio")
+
+result_main <- new_women %>%
+  filter(method == "Inverse variance weighted" | method=="Wald ratio")
 
 result_Egger <- new_women %>%
   filter(method == "MR Egger")
@@ -165,13 +175,15 @@ result_PRESSO <- new_women %>%
 
 result_PRESSO$fdr.women <- c("NA")
 
-names(result_IVW)
+#names(result_IVW)
 
-result_IVW$fdr.women<-p.adjust(result_IVW$pval.women, method="BH")
+#result_IVW$fdr.women<-p.adjust(result_IVW$pval.women, method="BH")
 
-result_WR$fdr.women<-p.adjust(result_WR$pval.women, method="BH")
+#result_WR$fdr.women<-p.adjust(result_WR$pval.women, method="BH")
 
-women_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+#men_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+result_main$fdr.women<-p.adjust(result_main$pval.women, method="BH")
+women_all <- rbind(result_main,result_Egger,result_WM, result_PRESSO)
 
 str(women_all)
 women_all$fdr.women<- as.numeric(women_all$fdr.women)
@@ -226,12 +238,17 @@ new_all <- new_all %>%
   ungroup()
 
 
-# FDR correction
-result_IVW <- new_all %>%
-  filter(method == "Inverse variance weighted")
 
-result_WR <- new_all %>%
-  filter(method == "Wald ratio")
+# FDR correction
+# result_IVW <- new_all %>%
+#   filter(method == "Inverse variance weighted")
+# 
+# result_WR <- new_all %>%
+#   filter(method == "Wald ratio")
+
+result_main <- new_all %>%
+  filter(method == "Inverse variance weighted" | method=="Wald ratio")
+
 
 result_Egger <- new_all %>%
   filter(method == "MR Egger")
@@ -248,13 +265,16 @@ result_PRESSO <- new_all %>%
 
 result_PRESSO$fdr.all <- c("NA")
 
-names(result_IVW)
+#names(result_IVW)
 
-result_IVW$fdr.all<-p.adjust(result_IVW$pval.all, method="BH")
+#result_IVW$fdr.all<-p.adjust(result_IVW$pval.all, method="BH")
 
-result_WR$fdr.all<-p.adjust(result_WR$pval.all, method="BH")
+#result_WR$fdr.all<-p.adjust(result_WR$pval.all, method="BH")
 
-all_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+#all_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+
+result_main$fdr.all<-p.adjust(result_main$pval.all, method="BH")
+all_all <- rbind(result_main,result_Egger,result_WM, result_PRESSO)
 
 str(all_all)
 all_all$fdr.all<- as.numeric(all_all$fdr.all)
@@ -341,11 +361,15 @@ new_males <- new_males %>%
   ungroup()
 
 # FDR correction 
-result_IVW <- new_males %>%
-  filter(method == "Inverse variance weighted")
 
-result_WR <- new_males %>%
-  filter(method == "Wald ratio")
+# result_IVW <- new_males %>%
+#   filter(method == "Inverse variance weighted")
+# 
+# result_WR <- new_males %>%
+#   filter(method == "Wald ratio")
+
+result_main <- new_males %>%
+     filter(method == "Inverse variance weighted" | method=="Wald ratio")
 
 result_Egger <- new_males %>%
   filter(method == "MR Egger")
@@ -362,16 +386,21 @@ result_PRESSO <- new_males %>%
 
 result_PRESSO$fdr.men <- c("NA")
 
-names(result_IVW)
+#names(result_IVW)
 
-result_IVW$fdr.men<-p.adjust(result_IVW$pval.men, method="BH")
-result_WR$fdr.men<-p.adjust(result_WR$pval.men, method="BH")
+#result_IVW$fdr.men<-p.adjust(result_IVW$pval.men, method="BH")
 
-men_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+#result_WR$fdr.men<-p.adjust(result_WR$pval.men, method="BH")
+
+result_main$fdr.men<-p.adjust(result_main$pval.men, method="BH")
+#men_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+
+men_all <- rbind(result_main,result_Egger,result_WM, result_PRESSO)
 
 str(men_all)
 men_all$fdr.men<- as.numeric(men_all$fdr.men)
 men_all$pval.men[men_all$nsnp.men == 0] <- 1 # set p-value to 1 when MR-PRESSO removes all SNPs
+
 
 ######  WOMEN #####
 
@@ -422,11 +451,15 @@ new_women <- new_women %>%
   ungroup()
 
 # FDR correction
-result_IVW <- new_women %>%
-  filter(method == "Inverse variance weighted")
 
-result_WR <- new_women %>%
-  filter(method == "Wald ratio")
+# result_IVW <- new_women %>%
+#   filter(method == "Inverse variance weighted")
+# 
+# result_WR <- new_women %>%
+#   filter(method == "Wald ratio")
+
+result_main <- new_women %>%
+  filter(method == "Inverse variance weighted" | method=="Wald ratio")
 
 result_Egger <- new_women %>%
   filter(method == "MR Egger")
@@ -443,17 +476,20 @@ result_PRESSO <- new_women %>%
 
 result_PRESSO$fdr.women <- c("NA")
 
-names(result_IVW)
+#names(result_IVW)
 
-result_IVW$fdr.women<-p.adjust(result_IVW$pval.women, method="BH")
+#result_IVW$fdr.women<-p.adjust(result_IVW$pval.women, method="BH")
 
-result_WR$fdr.women<-p.adjust(result_WR$pval.women, method="BH")
+#result_WR$fdr.women<-p.adjust(result_WR$pval.women, method="BH")
 
-women_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+#men_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+result_main$fdr.women<-p.adjust(result_main$pval.women, method="BH")
+women_all <- rbind(result_main,result_Egger,result_WM, result_PRESSO)
 
 str(women_all)
 women_all$fdr.women<- as.numeric(women_all$fdr.women)
 women_all$pval.women[women_all$nsnp.women == 0] <- 1 # set p-value to 1 when MR-PRESSO removes all SNPs
+
 
 ######  ALL #####
 
@@ -503,12 +539,17 @@ new_all <- new_all %>%
   ungroup()
 
 
-# FDR correction 
-result_IVW <- new_all %>%
-  filter(method == "Inverse variance weighted")
 
-result_WR <- new_all %>%
-  filter(method == "Wald ratio")
+# FDR correction
+# result_IVW <- new_all %>%
+#   filter(method == "Inverse variance weighted")
+# 
+# result_WR <- new_all %>%
+#   filter(method == "Wald ratio")
+
+result_main <- new_all %>%
+  filter(method == "Inverse variance weighted" | method=="Wald ratio")
+
 
 result_Egger <- new_all %>%
   filter(method == "MR Egger")
@@ -525,17 +566,19 @@ result_PRESSO <- new_all %>%
 
 result_PRESSO$fdr.all <- c("NA")
 
-names(result_IVW)
+#names(result_IVW)
 
-result_IVW$fdr.all<-p.adjust(result_IVW$pval.all, method="BH")
+#result_IVW$fdr.all<-p.adjust(result_IVW$pval.all, method="BH")
 
-result_WR$fdr.all<-p.adjust(result_WR$pval.all, method="BH")
+#result_WR$fdr.all<-p.adjust(result_WR$pval.all, method="BH")
 
-all_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+#all_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+
+result_main$fdr.all<-p.adjust(result_main$pval.all, method="BH")
+all_all <- rbind(result_main,result_Egger,result_WM, result_PRESSO)
 
 str(all_all)
 all_all$fdr.all<- as.numeric(all_all$fdr.all)
-
 all_all$pval.all[all_all$nsnp.all == 0] <- 1 # set p-value to 1 when MR-PRESSO removes all SNPs
 
 ######  ST2. TABLE of ALL RESULTS (significant or not) #####
@@ -618,11 +661,15 @@ new_males <- new_males %>%
   ungroup()
 
 # FDR correction 
-result_IVW <- new_males %>%
-  filter(method == "Inverse variance weighted")
 
-result_WR <- new_males %>%
-  filter(method == "Wald ratio")
+# result_IVW <- new_males %>%
+#   filter(method == "Inverse variance weighted")
+# 
+# result_WR <- new_males %>%
+#   filter(method == "Wald ratio")
+
+result_main <- new_males %>%
+     filter(method == "Inverse variance weighted" | method=="Wald ratio")
 
 result_Egger <- new_males %>%
   filter(method == "MR Egger")
@@ -639,13 +686,16 @@ result_PRESSO <- new_males %>%
 
 result_PRESSO$fdr.men <- c("NA")
 
-names(result_IVW)
+#names(result_IVW)
 
-result_IVW$fdr.men<-p.adjust(result_IVW$pval.men, method="BH")
+#result_IVW$fdr.men<-p.adjust(result_IVW$pval.men, method="BH")
 
-result_WR$fdr.men<-p.adjust(result_WR$pval.men, method="BH")
+#result_WR$fdr.men<-p.adjust(result_WR$pval.men, method="BH")
 
-men_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+result_main$fdr.men<-p.adjust(result_main$pval.men, method="BH")
+#men_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+
+men_all <- rbind(result_main,result_Egger,result_WM, result_PRESSO)
 
 str(men_all)
 men_all$fdr.men<- as.numeric(men_all$fdr.men)
@@ -699,12 +749,16 @@ new_women <- new_women %>%
   ) %>%
   ungroup()
 
-# FDR correction 
-result_IVW <- new_women %>%
-  filter(method == "Inverse variance weighted")
+# FDR correction
 
-result_WR <- new_women %>%
-  filter(method == "Wald ratio")
+# result_IVW <- new_women %>%
+#   filter(method == "Inverse variance weighted")
+# 
+# result_WR <- new_women %>%
+#   filter(method == "Wald ratio")
+
+result_main <- new_women %>%
+  filter(method == "Inverse variance weighted" | method=="Wald ratio")
 
 result_Egger <- new_women %>%
   filter(method == "MR Egger")
@@ -721,13 +775,15 @@ result_PRESSO <- new_women %>%
 
 result_PRESSO$fdr.women <- c("NA")
 
-names(result_IVW)
+#names(result_IVW)
 
-result_IVW$fdr.women<-p.adjust(result_IVW$pval.women, method="BH")
+#result_IVW$fdr.women<-p.adjust(result_IVW$pval.women, method="BH")
 
-result_WR$fdr.women<-p.adjust(result_WR$pval.women, method="BH")
+#result_WR$fdr.women<-p.adjust(result_WR$pval.women, method="BH")
 
-women_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+#men_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+result_main$fdr.women<-p.adjust(result_main$pval.women, method="BH")
+women_all <- rbind(result_main,result_Egger,result_WM, result_PRESSO)
 
 str(women_all)
 women_all$fdr.women<- as.numeric(women_all$fdr.women)
@@ -782,12 +838,17 @@ new_all <- new_all %>%
   ungroup()
 
 
-# FDR correction
-result_IVW <- new_all %>%
-  filter(method == "Inverse variance weighted")
 
-result_WR <- new_all %>%
-  filter(method == "Wald ratio")
+# FDR correction
+# result_IVW <- new_all %>%
+#   filter(method == "Inverse variance weighted")
+# 
+# result_WR <- new_all %>%
+#   filter(method == "Wald ratio")
+
+result_main <- new_all %>%
+  filter(method == "Inverse variance weighted" | method=="Wald ratio")
+
 
 result_Egger <- new_all %>%
   filter(method == "MR Egger")
@@ -804,17 +865,19 @@ result_PRESSO <- new_all %>%
 
 result_PRESSO$fdr.all <- c("NA")
 
-names(result_IVW)
+#names(result_IVW)
 
-result_IVW$fdr.all<-p.adjust(result_IVW$pval.all, method="BH")
+#result_IVW$fdr.all<-p.adjust(result_IVW$pval.all, method="BH")
 
-result_WR$fdr.all<-p.adjust(result_WR$pval.all, method="BH")
+#result_WR$fdr.all<-p.adjust(result_WR$pval.all, method="BH")
 
-all_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+#all_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+
+result_main$fdr.all<-p.adjust(result_main$pval.all, method="BH")
+all_all <- rbind(result_main,result_Egger,result_WM, result_PRESSO)
 
 str(all_all)
 all_all$fdr.all<- as.numeric(all_all$fdr.all)
-
 all_all$pval.all[all_all$nsnp.all == 0] <- 1 # set p-value to 1 when MR-PRESSO removes all SNPs
 
 ######  ST3. TABLE of ALL RESULTS (significant or not) #####
