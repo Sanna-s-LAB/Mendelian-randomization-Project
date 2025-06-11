@@ -1,6 +1,9 @@
 # Causal relationships between gut microbiome and age-related traits
+
 **Release date: 03 February 2025**
+
 **Date of last update: 11 June 2025**
+
 Scripts used for Mendelian randomization analysis in the paper *Grosso et al. (2025)* (**running on R version 4.4.1**).
 
 The pipeline is divided in 3 folders containing the codes used to perform the main Mendelian randomization analysis. 
