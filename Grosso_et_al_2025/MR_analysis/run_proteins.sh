@@ -44,7 +44,7 @@ for outcome_file in "$file_path_outcome"/*.gz; do
 
     # If the MRallRES file exists, then it skip the analysis
     if [ -f "$output_result" ]; then
-      echo "Saltato: $exp_base vs $OID (already run)"
+      echo "Skipped: $exp_base vs $OID (already run)"
       ((pair_index++))
       continue
     fi
