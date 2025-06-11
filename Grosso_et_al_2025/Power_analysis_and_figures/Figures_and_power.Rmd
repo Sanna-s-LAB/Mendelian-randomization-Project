@@ -1,0 +1,573 @@
+---
+title: "Graphics"
+author: "Federica Grosso"
+date: "2024-12-27"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+require(TwoSampleMR)
+require(ieugwasr)
+require(ggplot2)
+require(MRPRESSO)
+library(officer)
+library(tidyverse)
+library(ggrepel)
+source("~/funzioni.R")
+```
+
+
+# Figures 
+
+### Functions
+
+```{r}
+explained_variance <- function(data, N)
+{
+eaf = data$eaf.exposure
+MAF <- ifelse(eaf <= 0.5, eaf, 1-eaf)
+beta = data$beta.exposure
+se =data$se.exposure
+R2 = 2 * beta^2 * MAF * (1 - MAF) / (2 * beta^2 * MAF * (1 - MAF) + se^2 * 2 * N * MAF * (1 - MAF))
+R_2=sum(R2)
+return(R_2)
+}
+
+calculate_power_B <- function(b1, n, ratio, sig, rsq) {
+  power <- pnorm(sqrt(n*rsq*(ratio/(1+ratio))*(1/(1+ratio)))*b1-qnorm(1-sig/2))*100
+  return(power)
+}
+
+calculate_power_C <- function(b1, n, sig, rsq){
+  power<-pnorm(sqrt(rsq*b1^2*n)-qnorm(1-sig/2))*100
+  return(power)
+}
+```
+
+# AMD
+
+# Power of MR analysis
+
+## Load of IV
+
+```{r}
+path <- "~\Results_MacularDeg\\Harm_data_E_GCST90027663_O_MACDEG.txt"
+path1 <- "~\Results_AMD2\\Harm_data_E_GCST90027663_O_AMD2.txt"
+path2 <- "~\Results_EarlyAMD\\Harm_data_E_GCST90027663_O_EarlyAMD.txt"
+path3 <- "~\Other_analysis\\Results_Fingen\\Harm_data_E_GCST90027663_O_AMD.txt"
+data <- read.table(path, sep = "\t")
+data <- data[data$mr_keep != FALSE, ]
+data1 <- read.table(path1, sep = "\t")
+data1 <- data1[data1$mr_keep != FALSE, ]
+data2 <- read.table(path2, sep = "\t")
+data2 <- data2[data2$mr_keep != FALSE, ]
+data3 <- read.table(path3, sep = "\t")
+data3 <- data3[data3$mr_keep != FALSE, ]
+```
+
+## Calculation of explained variance R^2
+
+```{r}
+N=7738
+R_2 <- explained_variance(data, N)
+R_21 <- explained_variance(data1, N)
+R_22 <- explained_variance(data2, N)
+R_23 <- explained_variance(data3, N)
+# 0.01859125 con GCST90027737
+# 0.01858982 con GCST90027663
+R_2
+R_21
+R_22
+R_23
+```
+
+## Calculation of power
+
+```{r}
+n=456348
+n1=56637
+n2=105248
+n3=430221
+
+pwr <- calculate_power_B(b1=0.2, n=456348, ratio=1295/ 455053, sig= 0.05, rsq= R_2);pwr
+
+pwr <- calculate_power_B(b1=0.2, n1, ratio=3685/52952, sig= 0.05, rsq= R_2);pwr
+
+pwr <- calculate_power_B(b1=0.2, n2, ratio=14034/91214, sig= 0.05, rsq= R_2);pwr
+
+pwr <- calculate_power_B(b1=0.2, n3, ratio=11023/419198, sig= 0.05, rsq= R_2);pwr
+```
+
+### Binary outcome
+
+```{r}
+cat("Power of analysis with", n, "participants: ", pwr, "%")
+```
+
+## Plot of effect size vs power
+
+```{r}
+# Effect size grid
+beta_values <- seq(0.05, 0.60, by=0.05)
+```
+
+```{r}
+beta_values <- seq(0.05, 0.60, by=0.05)
+ratio_values <- c(1295/ 455053, 3685/52952, 14034/91214, 11023/419198)
+n_values <- c(456348,56637,105248,430221)
+results <- data.frame()
+
+# Iterate su each beta value
+for (beta in beta_values) {
+  temp_results <- data.frame(
+    Beta = beta,
+    SampleSize = n_values,
+    Ratio = ratio_values,
+    Sigma = 0.05,
+    Rsq = R_2,
+    Power = mapply(calculate_power_B, beta, n_values, ratio_values, 0.05, R_2)
+  )
+  results <- rbind(results, temp_results)
+}
+```
+
+```{r}
+1295/ 455053
+3685/52952
+14034/91214
+11023/419198
+```
+
+
+### Power of AMD
+
+```{r}
+# Filter the data to find y values where x = 0.2
+annotate_data <- results %>% filter(Beta == 0.2)
+
+ggplot(results, aes(x = Beta, y = Power, color = as.factor(Ratio))) + 
+  geom_point(size = 2.5) + 
+  geom_line(lwd = 1) +
+  scale_color_manual(name = "Ratio of Cases to Controls", 
+                     values = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"), 
+                     labels = c("ratio = 0.0028 (GCST90043776 -\nmain analysis)", 
+                                "ratio =  0.026 (Finngen study)",
+                                "ratio = 0.06959 (GCST90086112)", 
+                                "ratio = 0.1539 (GCST010723)")) +
+  labs(x = expression(Causal~Effect~(beta)),
+       y = "Power (%)") +
+  theme_minimal() +
+  theme(
+      panel.border = element_rect(color = "darkgrey", fill = NA, size = 1),
+      axis.line = element_line(color = "darkgrey", size = 0.5),
+      axis.ticks = element_line(color = "darkgrey"),
+      axis.text.x = element_text(lineheight = 12),
+      axis.text.y = element_text(lineheight = 12)
+   ) 
+  # geom_text(data = annotate_data, 
+  #           aes(label = paste0(round(Power, 1), "%")), 
+  #           size = 3.5, color = "black")
+```
+
+
+# ApoM
+
+## GCST90027579_OID20374.pdf
+
+```{r}
+file_path_exposure <-"~/microbiome/Clumping_results_no_NA1/clumping_GCST90027579.csv"
+file_path_outcome <- "~/microbiome/Outcomes/ProteinsUKBB2023_merged/APOM_O95445_OID20374_v1_Cardiometabolic.gz"
+```
+
+
+```{r}
+dataE<-read.csv(file_path_exposure, header=T)
+dataE$exposure <- "PWY.6353"
+suppressWarnings({
+  dataO<-read_outcome_data(file_path_outcome, 
+                           snps = dataE$SNP,
+                           sep=" ", 
+                           phenotype_col = "Outcome",
+                           snp_col = "rsid",
+                           beta_col = "BETA",
+                           se_col="SE",
+                           eaf_col = "A1FREQ",
+                           effect_allele_col = "ALLELE1",
+                           other_allele_col = "ALLELE0",
+                           pval="pvalue")
+  dataO$outcome <- "ApoM (main)"
+})
+
+dat <- harmonise_data(dataE, dataO, action = 2)
+mr_results <- mr(dat, method_list = c("mr_ivw","mr_wald_ratio","mr_weighted_median"))
+
+res_loo <- mr_leaveoneout(dat)
+res_loo1<- res_loo
+```
+
+```{r}
+p1 <- mr_leaveoneout_plot(res_loo)
+#print(p1)
+ggsave("~/Images/LOO_APOM_main.tiff", plot = p1[[1]], width= 5, height=5 , dpi = 300)
+```
+
+```{r}
+ dat <- dat %>% filter(mr_keep)
+ mr_presso <- mr_presso(BetaOutcome="beta.outcome", 
+                      BetaExposure="beta.exposure", 
+                      SdOutcome="se.outcome", 
+                      SdExposure="se.exposure", 
+                      data=dat, 
+                      OUTLIERtest = TRUE, 
+                      DISTORTIONtest = TRUE, 
+                      SignifThreshold = 0.05, 
+                      NbDistribution = 1000, seed = 1)
+
+
+#output_file <- paste0(base_path,"MRallRES_E_", nome_exposure, "_O_", nome_outcome, ".csv")
+if (!is.null(mr_presso)) {
+  mr_results[nrow(mr_results) + 1, ] <- mr_results[nrow(mr_results), ] 
+  
+  if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`)){
+    mr_results[nrow(mr_results), "nsnp"] <- mr_results$nsnp[1]- length(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`)
+  } else {
+    mr_results[nrow(mr_results), "nsnp"] <- mr_results$nsnp[1]
+  }
+  
+  mr_results[nrow(mr_results), "method"] <- "MR-PRESSO"
+  mr_results[nrow(mr_results), "b"] <- mr_presso$`Main MR results`$`Causal Estimate`[1]
+  mr_results[nrow(mr_results), "se"] <- mr_presso$`Main MR results`$Sd[1]
+  mr_results[nrow(mr_results), "pval"] <- mr_presso$`Main MR results`$`P-value`[1]
+} else {
+  mr_results[nrow(mr_results) + 1, ] <- mr_results[nrow(mr_results), ] 
+  mr_results[nrow(mr_results), "method"] <- "MR-PRESSO"
+  mr_results[nrow(mr_results), "b"] <- NA
+  mr_results[nrow(mr_results), "se"] <- NA
+  mr_results[nrow(mr_results), "pval"] <- NA
+}
+ mr_results_2 <- mr_results
+ p2 <- mr_scatter_plot_1(mr_results, dat)
+# p2 <- mr_scatter_plot_1(mr_results_2, dat)[[1]] +
+#   ggtitle("Main analysis") +
+#   theme(
+#     plot.title = element_text(hjust = 0.5, face = "bold", size = 18),
+#     legend.position = c(0.7, 0.9),  
+#     legend.background = element_rect(fill = "white", color = "black"),
+#     legend.text = element_text(size = 8),  # Riduce la dimensione del testo della legenda
+#     legend.title = element_text(size = 10),  # Riduce la dimensione del titolo della legenda
+#   legend.key.size = unit(0.5, "cm")  # Riduce la dimensione del rettangolo della legenda
+#   )
+
+print(p2)
+ggsave("~/Images/SP_APOM_title.tiff", plot = p2[[1]], width= 6, height=6 , dpi = 300)
+```
+
+## Replication
+
+```{r}
+file_path_exposure <-"~/microbiome/Clumping_results_no_NA1/clumping_GCST90027579.csv"
+#file_path_outcome <- "~/microbiome/Outcomes/ProteinsUKBB2023_merged/APOM_O95445_OID20374_v1_Cardiometabolic.gz"
+```
+
+
+
+```{r}
+dataE<-read.csv(file_path_exposure, header=T)
+dataE$exposure <- "PWY.6353"
+dataO<- extract_outcome_data(snps = dataE$SNP, outcomes = 'prot-a-136')
+dataO$outcome <- "ApoM (replication)"
+dat <- harmonise_data(dataE, dataO, action = 2)
+mr_results <- mr(dat, method_list = c("mr_ivw","mr_wald_ratio","mr_weighted_median"))
+
+res_loo <- mr_leaveoneout(dat)
+```
+
+
+```{r}
+p <- mr_leaveoneout_plot(res_loo)
+#print(p)
+ggsave("~/Images/LOO_APOM_rep.tiff", plot = p[[1]], width= 5, height=5 , dpi = 300)
+```
+
+```{r}
+ dat <- dat %>% filter(mr_keep)
+ mr_presso <- mr_presso(BetaOutcome="beta.outcome", 
+                      BetaExposure="beta.exposure", 
+                      SdOutcome="se.outcome", 
+                      SdExposure="se.exposure", 
+                      data=dat, 
+                      OUTLIERtest = TRUE, 
+                      DISTORTIONtest = TRUE, 
+                      SignifThreshold = 0.05, 
+                      NbDistribution = 1000, seed = 1)
+
+
+#output_file <- paste0(base_path,"MRallRES_E_", nome_exposure, "_O_", nome_outcome, ".csv")
+if (!is.null(mr_presso)) {
+  mr_results[nrow(mr_results) + 1, ] <- mr_results[nrow(mr_results), ] 
+  
+  if (!is.null(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`)){
+    mr_results[nrow(mr_results), "nsnp"] <- mr_results$nsnp[1]- length(mr_presso$`MR-PRESSO results`$`Distortion Test`$`Outliers Indices`)
+  } else {
+    mr_results[nrow(mr_results), "nsnp"] <- mr_results$nsnp[1]
+  }
+  
+  mr_results[nrow(mr_results), "method"] <- "MR-PRESSO"
+  mr_results[nrow(mr_results), "b"] <- mr_presso$`Main MR results`$`Causal Estimate`[1]
+  mr_results[nrow(mr_results), "se"] <- mr_presso$`Main MR results`$Sd[1]
+  mr_results[nrow(mr_results), "pval"] <- mr_presso$`Main MR results`$`P-value`[1]
+} else {
+  mr_results[nrow(mr_results) + 1, ] <- mr_results[nrow(mr_results), ] 
+  mr_results[nrow(mr_results), "method"] <- "MR-PRESSO"
+  mr_results[nrow(mr_results), "b"] <- NA
+  mr_results[nrow(mr_results), "se"] <- NA
+  mr_results[nrow(mr_results), "pval"] <- NA
+}
+ p3 <- mr_scatter_plot_1(mr_results, dat)
+mr_results_3 <-mr_results
+# p3 <- mr_scatter_plot_1(mr_results_3, dat)[[1]] +
+#   ggtitle("Replication analysis") +
+#   theme(
+#     plot.title = element_text(hjust = 0.5, face = "bold", size = 18),
+#     legend.position = c(0.7, 0.9),  
+#     legend.background = element_rect(fill = "white", color = "black"),
+#     legend.text = element_text(size = 8),  # Riduce la dimensione del testo della legenda
+#     legend.title = element_text(size = 10),  # Riduce la dimensione del titolo della legenda
+#   legend.key.size = unit(0.5, "cm")  # Riduce la dimensione del rettangolo della legenda
+#   )
+#print(p3)
+ggsave("~/Images/SP_APOM_rep_title.tiff", plot = p3[[1]], width= 6, height=6 , dpi = 300)
+```
+
+
+## Power analysis
+
+
+```{r}
+path <- "~/microbiome/Results_IP_UKBB2023/GCST90027579_OID20374_dat.txt"
+path1 <-"~/microbiome/Analyses_on_UKBB/Replication/GCST90027579_Apolipoprotein M_dat.txt"
+data <- read.table(path, sep = "\t", header = T)
+data <- data[data$mr_keep != FALSE, ]
+data1 <- read.table(path1, sep = "\t", header = T)
+data1 <- data1[data1$mr_keep != FALSE, ]
+```
+
+
+```{r}
+N=7738
+R_2 <- explained_variance(data,N); R_2
+R_21 <- explained_variance(data1,N); R_21
+n =  54219 # Sample size main
+n1 = 3301 # Sample size replication
+beta_values <- seq(0.05, 0.40, by = 0.05)
+n_values <- c(n, n1)
+R2_values <- c(R_2, R_21)
+
+results <- data.frame()
+
+for (beta in beta_values) {
+  for (i in 1:length(n_values)) {
+    power_value <- calculate_power_C(beta, n_values[i], 0.05, R2_values[i])
+    
+    temp_results <- data.frame(
+      Beta = beta,
+      SampleSize = n_values[i],
+      Sigma = 0.05,
+      Rsq = R2_values[i],
+      Power = power_value
+    )
+    
+    results <- rbind(results, temp_results)
+  }
+}
+
+p4 <- ggplot(results, aes(x = Beta, y = Power, color = as.factor(SampleSize))) + 
+  geom_point(size = 2.5) + 
+  geom_line(lwd = 1) +
+  scale_color_manual(name = "Outcome's GWAS accession", 
+                     values = c("#1f77b4", "#ff7f0e"), 
+                     labels = c("INTERVAL study (n=3,301)", 
+                                "UKB-PPP APOM (n=54,219) - \nmain analysis")) +
+  labs(x = expression(Causal~Effect~(beta[c])),
+       y = "Power (%)") +
+#  ggtitle("Power analysis of PWY.6353 vs APOM protein") +  # Title
+  theme_minimal() +
+  theme(
+      plot.title = element_text(hjust = 0.5, face = "bold"), 
+      panel.border = element_rect(color = "darkgrey", fill = NA, size = 1),
+      axis.line = element_line(color = "darkgrey", size = 0.5),
+      axis.ticks = element_line(color = "darkgrey"),
+      axis.text.x = element_text(lineheight = 12),
+      axis.text.y = element_text(lineheight = 12),
+      legend.position = c(0.75, 0.25), 
+      legend.background = element_rect(fill = "white", color = "black"), 
+      legend.key = element_rect(fill = "white", color = "white")
+  )  +
+  annotate("text", x = 0.1, y = 100, label = "96.94%", 
+           color = "#ff7f0e", fontface = "bold", vjust = 0, hjust = 0.8) +
+  annotate("text", x = 0.1, y = 20, label = "15.52%", 
+           color = "#1f77b4", fontface = "bold", vjust = -0.2, hjust= 0.8)
+
+
+print(p4)
+ggsave("~/Images/power_APOM.tiff", plot = p4, width=6, height=5 , dpi = 300,bg = "white")
+
+```
+
+```{r}
+library(gridExtra)
+library(grid)
+p4a <- p4 + theme(aspect.ratio = 0.75)
+p1a <- p1[[1]] + theme(axis.text.x = element_text(size = 12), # Titolo asse X
+  axis.title.x = element_text(size = 11)  # Titolo asse Y
+)
+g1 <- ggplotGrob(p2[[1]])
+g2 <- ggplotGrob(p3[[1]])
+g3 <- ggplotGrob(p1a)
+g4 <- ggplotGrob(p4a)
+
+tiff("~/Images/Figure2.tiff", width = 36, height = 33, units = "cm", res = 300)
+
+# 4 panels
+grid.arrange(g1, g2, g3, g4, 
+             ncol = 2)
+
+# Ad labels (a, b, c, d)
+grid.text("a)", x = 0.025, y = 0.98, gp = gpar(fontsize = 12, fontface = "bold"))
+grid.text("b)", x = 0.53, y = 0.98, gp = gpar(fontsize = 12, fontface = "bold"))
+grid.text("c)", x = 0.025, y = 0.49, gp = gpar(fontsize = 12, fontface = "bold"))
+grid.text("d)", x = 0.53, y = 0.49, gp = gpar(fontsize = 12, fontface = "bold"))
+
+dev.off()
+
+```
+
+# FOREST PLOTS
+
+```{r}
+library(patchwork)
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggtext)
+
+# 1. Upload data
+significant <- read_excel("~/microbiome/Analyses_on_UKBB/significant_with_replication.xlsx", sheet = 2)
+
+# 2. Rename outcome panels
+significant <- significant %>%
+  mutate(
+    Panel_group = case_when(
+      Panel %in% c("Cardiometabolic", "Cardiometabolic_II") ~ "Cardiometabolic",
+      Panel %in% c("Inflammation_II", "Inflammation") ~ "Inflammatory",
+      TRUE ~ Panel
+    )
+  )
+
+### --- Prepare data function ---
+prepare_data <- function(data, color, xlim_range, bar_height = 0.4) {
+  
+  data <- data %>%
+    mutate(
+      exposure_short = ifelse(
+        grepl("PWY", exposure_names),
+        sapply(strsplit(exposure_names, "\\."), function(x) paste(x[1:2], collapse = ".")),
+        sapply(strsplit(exposure_names, "\\."), function(x) tail(x, 1))
+      ),
+      ci_lower = b - 1.96 * se,
+      ci_upper = b + 1.96 * se,
+      outcome_label = Assay,
+      exposure_sort_key = ifelse(
+        grepl("^PWY", exposure_short),
+        exposure_short,
+        gsub("^[a-zA-Z]+__", "", exposure_short)
+      )
+    )
+
+  split_data <- split(data, data$exposure_short)
+  split_data <- split_data[order(sapply(split_data, function(x) unique(x$exposure_sort_key)))]
+
+  plots <- list()
+  heights <- numeric(length(split_data))
+  
+  for (i in seq_along(split_data)) {
+    df <- split_data[[i]]
+    df <- df %>%
+      arrange(desc(b)) %>%
+      mutate(outcome_label = factor(outcome_label, levels = unique(outcome_label)))
+    
+    n_rows <- length(unique(df$outcome_label))
+    
+    p <- ggplot(df, aes(x = b, y = outcome_label)) +
+  geom_point(size = 1, color = color) +
+  geom_errorbarh(aes(xmin = ci_lower, xmax = ci_upper), height = bar_height, color = color) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+geom_text(
+  data = df %>% filter(Assay == "APOM"),
+  aes(label = "*", x = b - 0.19, y = outcome_label),
+  color = "black",
+  size = 4,
+  vjust = 0.7,
+  fontface = "bold",
+  inherit.aes = FALSE
+) +
+  labs(title = unique(df$exposure_short), x = NULL, y = NULL) +
+  theme_minimal(base_size = 8) +
+  theme(
+    plot.title = element_text(face = "italic", hjust = 0, size = 7),
+    axis.text.y = element_text(size = 7),
+    axis.text.x = element_text(size = 4)
+  ) +
+  xlim(xlim_range[1], xlim_range[2])
+
+    
+    plots[[i]] <- p
+    heights[i] <- n_rows
+  }
+  
+  return(wrap_plots(plots, ncol = 1, heights = heights))
+}
+
+
+significant1 <- filter(significant, Panel_group == "Inflammatory")
+significant2 <- filter(significant, Panel_group == "Cardiometabolic")
+
+final_plot1 <- prepare_data(significant1, color = "#1f77b4", xlim_range = c(-0.3, 0.25), bar_height = 0.4) +
+  plot_annotation(
+    title = "Inflammatory",
+    theme = theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5))
+  )
+
+final_plot2 <- prepare_data(significant2, color = "#ff7f0e", xlim_range = c(-0.3, 0.3), bar_height = 0.2) +
+  plot_annotation(
+    title = "Cardiometabolic",
+    theme = theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5))
+  )
+
+
+# Titles
+title1 <- ggplot() + 
+  theme_void() +
+  labs(title = "Inflammatory") +
+  theme(plot.title = element_text(size = 12, face = "bold", hjust = 0.5))
+
+title2 <- ggplot() + 
+  theme_void() +
+  labs(title = "Cardiometabolic") +
+  theme(plot.title = element_text(size = 12, face = "bold", hjust = 0.5))
+
+col_inflam <- title1 / final_plot1 + plot_layout(heights = c(0.008, 1))
+col_cardio <- title2 / final_plot2 + plot_layout(heights = c(0.008, 1))
+
+# Combine columns
+final_combined <- col_inflam | col_cardio
+
+# Save figure
+tiff("~/Images/Forest_plot.tiff", width = 25, height = 33, units = "cm", res = 300)
+final_combined
+dev.off()
+
+```
+
