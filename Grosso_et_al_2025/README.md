@@ -1,4 +1,4 @@
-# Causal relationships between gut microbiome and age-related traits
+# Causal relationships between gut microbiome and hundreds of age-related traits: evidence of a replicable effect on ApoM protein levels
 
 **Release date: 03 February 2025**
 
