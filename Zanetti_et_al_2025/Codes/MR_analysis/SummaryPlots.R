@@ -13,10 +13,10 @@ loadfonts(device = "pdf")  # Per rendere disponibili i font a ggsave
 
 # Load data
 
-lifelines <- read_excel("~/ST6_Final_LIFELINES_results_with_column_GLGC.xlsx", sheet = 1)
+lifelines <- read_excel("~/SuppTables.xlsx", sheet = 6)
 lifelines <- subset(lifelines, select=c("exposure","outcome","Consistency_GLGC_Lifelines_sexspecific","Consistency_QCochran_Lifelines_sexspecific"))
 lifelines <- lifelines %>% distinct()
-df <- read_excel("~/ST5_Table_after_bidir_and_cochran.xlsx")
+df <- read_excel("~/SuppTables.xlsx", sheet = 5)
 
 
 df <- merge(df, lifelines, all.x = TRUE)
