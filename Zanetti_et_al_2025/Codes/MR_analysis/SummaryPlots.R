@@ -62,11 +62,6 @@ df_long <- df1 %>%
       TRUE ~ ""
     ),
     highlight_Cochran = if_else(Cochran == "yes", TRUE, FALSE),
-    symbol1 = case_when(
-      Sex == "Men" & Cochran == "yes" ~ "†",
-      Sex == "Women" & Cochran == "yes" ~ "†",
-      TRUE ~ ""
-    ),
     color_group = case_when(
       Sex == "Women" & (SexSpecific =="women-only") ~ "Women_significant",
       Sex == "Men" & (SexSpecific =="men-only") ~ "Men_significant",
@@ -82,21 +77,18 @@ df_long <- df1 %>%
 plots <- df_long %>%
   group_split(outcome) %>%
   lapply(function(significant_sub) {
-   
-    # alphabetic order of proteins
+
      significant_sub <- significant_sub %>%
       dplyr::mutate(
-        ExposureOutcome = as.character(ExposureOutcome),  
+        ExposureOutcome = as.character(ExposureOutcome),  # reset fattore
         ExposureOutcome = factor(ExposureOutcome, levels = rev(sort(unique(ExposureOutcome))))
       )
-    
+
     min_x <- min(significant_sub$ci_lower, na.rm = TRUE) - 0.05 * diff(range(significant_sub$ci_lower, na.rm = TRUE))
-    
+
     ggplot(significant_sub, aes(x = b, y = ExposureOutcome, color = color_group)) +
-      geom_text(aes(x = min_x, label = symbol), 
+      geom_text(aes(x = min_x, label = symbol),
                 color = "black", size = 7, vjust = 0.72) +
-      geom_text(aes(x = min_x, label = symbol1), 
-                color = "black", size = 5, vjust = 0.52, hjust=2) +
       geom_point(position = position_dodge(width = 0.6), size = 2.5) +
       geom_errorbarh(aes(xmin = ci_lower, xmax = ci_upper),
                      position = position_dodge(width = 0.6),
@@ -133,6 +125,7 @@ plots <- df_long %>%
       ) +
       guides(color = guide_legend(override.aes = list(size = 3)))
   })
+
 
 
 names <- c("a","b","c","d","e")
@@ -177,13 +170,7 @@ df_long2 <- df2 %>%
     symbol = case_when(
       Consistency_QCochran_Lifelines_sexspecific == "yes"  ~ "*",
       TRUE ~ ""
-    ),
-    color_group = case_when(
-      Sex == "Women" & (SexSpecific =="women-only") ~ "Women_significant",
-      Sex == "Men" & (SexSpecific =="men-only") ~ "Men_significant",
-      TRUE ~ "Not_significant"
-    ),
-    color_group = factor(color_group, levels = c("Women_significant", "Men_significant", "Not_significant"))
+    )
   ) %>%
   group_by(outcome) %>%
   mutate(ExposureOutcome = factor(ExposureOutcome, levels = unique(ExposureOutcome[order(b)]))) %>%
@@ -192,38 +179,18 @@ df_long2 <- df2 %>%
 plots <- df_long2 %>%
   group_split(outcome) %>%
   lapply(function(df_sub) {
-    
-    df_sub <- df_sub %>%
-      mutate(
-        ExposureOutcome = as.character(ExposureOutcome),
-        ExposureOutcome = factor(ExposureOutcome, levels = rev(sort(unique(ExposureOutcome)))),
-        color_group = factor(color_group,
-                             levels = c("Women_significant", "Men_significant", "Not_significant"))
-      )
-    
+
     min_x <- min(df_sub$ci_lower, na.rm = TRUE) - 0.05 * diff(range(df_sub$ci_lower, na.rm = TRUE))
-    
-    ggplot(df_sub, aes(x = b, y = ExposureOutcome, color = color_group, group = Sex)) +
-      geom_text(aes(x = min_x, label = symbol), 
+
+    ggplot(df_sub, aes(x = b, y = ExposureOutcome, group = Sex, color= Sex)) +
+      geom_text(aes(x = min_x, label = symbol),
                 color = "black", size = 7, vjust = 0.72) +
       geom_point(position = position_dodge(width = 0.6), size = 2.5) +
       geom_errorbarh(aes(xmin = ci_lower, xmax = ci_upper),
                      position = position_dodge(width = 0.6),
                      height = 0.5) +
       geom_vline(xintercept = 0, linetype = "dashed", color = "gray40") +
-      scale_color_manual(
-        values = c(
-          "Women_significant" = "#e41a1c",
-          "Men_significant" = "#377eb8",
-          "Not_significant" = "gray70"
-        ),
-        breaks = c("Women_significant", "Men_significant"),
-        labels = c(
-          "Women_significant" = "Women",
-          "Men_significant" = "Men"
-        ),
-        drop = FALSE
-      ) +
+      scale_color_manual(values = c("black","gray60"))+
       labs(
         title = unique(df_sub$outcome),
         x = "Effect (IVW Beta ± 95% CI)",
@@ -232,7 +199,7 @@ plots <- df_long2 %>%
       ) +
       theme_minimal(base_size = 13) +
       theme(
-        axis.text.y = element_text(size = 8),
+        axis.text.y = element_text(size = 13),
         strip.text = element_text(face = "bold"),
         legend.position = "bottom",
         plot.title = element_text(hjust = 0.5),
@@ -243,7 +210,6 @@ plots <- df_long2 %>%
       ) +
       guides(color = guide_legend(override.aes = list(size = 3)))
   })
-
 
 names <- c("a","b","c","d","e")
 for (i in 1:5) {
