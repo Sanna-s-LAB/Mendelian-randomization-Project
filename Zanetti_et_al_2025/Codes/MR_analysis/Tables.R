@@ -655,10 +655,10 @@ Sig_womenORmen <- Sig_womenORmen[order(Sig_womenORmen$exposure, Sig_womenORmen$o
 Sig4 <- Sig_womenORmen
 Sig4$SignificantBysex_bid_new<- NULL
 Sig4$SignificantBysex_new<- NULL
-write.xlsx(Sig4 ,"~/Tables_new/ST5_Table_after_bidir_and_cochran_all_methods.xlsx")
+write.xlsx(Sig4 ,"~/Tables_new/ST4_Table_after_bidir_and_cochran_all_methods.xlsx")
 Sig4 <- Sig4 %>%
   filter(method %in% c("Inverse variance weighted", "Wald ratio"))
-write.xlsx(Sig4 ,"~/Tables_new/ST5_Table_after_bidir_and_cochran.xlsx")
+write.xlsx(Sig4 ,"~/Tables_new/ST4_Table_after_bidir_and_cochran.xlsx")
 
 
 ##### ST6. LIFELINES #####
