@@ -215,8 +215,8 @@ process_tables_truly_sex_specific <- function(df, col_name = "SexSpecific") {
         (("Inverse variance weighted" %in% sub_df$method & 
           any(sub_df$nsnp.women == 2 & sub_df$method == "Inverse variance weighted" & 
               !is.na(sub_df$fdr.women) & sub_df$fdr.women < 0.05)))) & (
-                (any("Inverse variance weighted" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Inverse variance weighted" ,"fdr.men"]) >= 0.05 )|
-                 (any("Wald ratio" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Wald ratio","fdr.men"]) >= 0.05))))) {
+                (any("Inverse variance weighted" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Inverse variance weighted" ,"pval.men"]) >= 0.05 )|
+                 (any("Wald ratio" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Wald ratio","pval.men"]) >= 0.05))))) {
       sub_df[[col_name]] <-"women-only" 
   
     } else if (((all(v %in% sub_df$method) & 
@@ -229,8 +229,8 @@ process_tables_truly_sex_specific <- function(df, col_name = "SexSpecific") {
         (("Inverse variance weighted" %in% sub_df$method & 
           any(sub_df$nsnp.men == 2 & sub_df$method == "Inverse variance weighted" & 
               !is.na(sub_df$fdr.men) & sub_df$fdr.men < 0.05))) )
-        & (any("Inverse variance weighted" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Inverse variance weighted" ,"fdr.women"]) >= 0.05 )|
-           (any("Wald ratio" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Wald ratio","fdr.women"]) >= 0.05)))) {
+        & (any("Inverse variance weighted" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Inverse variance weighted" ,"pval.women"]) >= 0.05 )|
+           (any("Wald ratio" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Wald ratio","pval.women"]) >= 0.05)))) {
       
       sub_df[[col_name]] <-"men-only" 
     }
@@ -624,8 +624,8 @@ process_tables_truly_sex_specific_lifelines <- function(df, col_name = "SexSpeci
          (("Inverse variance weighted" %in% sub_df$method & 
            any(sub_df[[nsnp.women]] == 2 & sub_df$method == "Inverse variance weighted" & 
                !is.na(sub_df[[fdr.women]]) & sub_df[[fdr.women]] < 0.05)))) & (
-                 (any("Inverse variance weighted" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Inverse variance weighted" ,fdr.men]) >= 0.05 )|
-                  (any("Wald ratio" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Wald ratio",fdr.men]) >= 0.05))))) {
+                 (any("Inverse variance weighted" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Inverse variance weighted" ,pval.men]) >= 0.05 )|
+                  (any("Wald ratio" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Wald ratio",pval.men]) >= 0.05))))) {
       sub_df[[col_name]] <-"women-only" 
       
     } else if (((all(v %in% sub_df$method) & 
@@ -638,8 +638,8 @@ process_tables_truly_sex_specific_lifelines <- function(df, col_name = "SexSpeci
                 (("Inverse variance weighted" %in% sub_df$method & 
                   any(sub_df[[nsnp.men]] == 2 & sub_df$method == "Inverse variance weighted" & 
                       !is.na(sub_df[[fdr.men]]) & sub_df[[fdr.men]] < 0.05))) )
-               & (any("Inverse variance weighted" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Inverse variance weighted" ,fdr.women]) >= 0.05 )|
-                  (any("Wald ratio" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Wald ratio",fdr.women]) >= 0.05)))) {
+               & (any("Inverse variance weighted" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Inverse variance weighted" ,pval.women]) >= 0.05 )|
+                  (any("Wald ratio" %in% sub_df$method & na.omit(sub_df[sub_df$method == "Wald ratio",pval.women]) >= 0.05)))) {
       
       sub_df[[col_name]] <-"men-only" 
     }
