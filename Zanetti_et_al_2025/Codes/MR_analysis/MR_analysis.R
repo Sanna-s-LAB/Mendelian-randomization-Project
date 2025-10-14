@@ -367,9 +367,9 @@ tryCatch({
   p1 <- mr_scatter_plot(mr_results, dat)
   print(p1)
 }, error = function(e) {
-  cat("Errore nel grafico Scatter:", e$message, "\n")
+  cat("Error in Scatter plot:", e$message, "\n")
   plot.new()
-  text(0.5, 0.5, "Errore nel grafico Scatter", cex = 1.5)
+  text(0.5, 0.5, "Error in Scatter Plot", cex = 1.5)
 })
 
 ## Leave-one-out plot
@@ -378,14 +378,14 @@ tryCatch({
     p2 <- mr_leaveoneout_plot(res_leaveoneout)
     print(p2)
   } else {
-    cat("Leave-one-out plot non generato: dati assenti.\n")
+    cat("Leave-one-out plot was not generated: data not present.\n")
     plot.new()
-    text(0.5, 0.5, "Dati Leave-one-out non disponibili", cex = 1.5)
+    text(0.5, 0.5, "Leave-one-out data not available", cex = 1.5)
   }
 }, error = function(e) {
-  cat("Errore nel grafico Leave-one-out:", e$message, "\n")
+  cat("Error in Leave-one-out plot:", e$message, "\n")
   plot.new()
-  text(0.5, 0.5, "Errore nel grafico Leave-one-out", cex = 1.5)
+  text(0.5, 0.5, "Error in Leave-one-out plot", cex = 1.5)
 })
 
 dev.off()
