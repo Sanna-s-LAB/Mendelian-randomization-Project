@@ -11,6 +11,11 @@ library("data.table")
 library("plyr")
 library("dplyr")
 library("ieugwasr")
+library("LDlinkR")  
+library("R.utils")
+library("stringr")
+
+
 
 # Read command-line arguments
 args <- commandArgs(trailingOnly = TRUE)
@@ -32,6 +37,182 @@ if( sex =="F") {
 basename <- basename(out)
 outcome_name <- sub("_.*", "", basename)
 oid <- sub(".*(OID\\d+).*", "\\1", exp_data)
+
+
+
+# === Find proxies using LDlinkR ===
+
+exposure_snps <- trimws(as.character(exp_data$SNP))
+outcome_snps <- trimws(as.character(out$rsid))
+
+# Identify missing SNPs
+missing_snps <- setdiff(exposure_snps, outcome_snps)
+
+# Report results
+cat("Missing SNPs in outcome:", length(missing_snps), "\n")
+print(missing_snps)
+
+
+n_proxies_found <- 0  # default value
+
+# === Check if any missing SNPs have potential proxies ===
+if (length(missing_snps) == 0) {
+  cat("No missing SNPs, skipping proxy search.\n")
+} else {
+  # === Find proxies using LDlinkR ===
+  proxy_results <- list()
+
+  for (snp in missing_snps) {
+    cat("Checking SNP:", snp, "\n")
+    
+    proxy_df <- NULL  
+
+    tryCatch({
+      proxy_df <- LDproxy(snp, pop = "EUR", r2d = "r2", token = "XXXX")
+    }, error = function(e) {
+      cat("Error during LDproxy() call for SNP", snp, ":", e$message, "\n")
+    })
+
+    # If proxy_df is still NULL or doesn't contain expected columns, skip
+    if (is.null(proxy_df) || !"R2" %in% names(proxy_df) || !"RS_Number" %in% names(proxy_df)) {
+      cat("No valid proxy data returned for", snp, "\n")
+      proxy_results[[snp]] <- NA
+      next
+    }
+
+    # Filter to R2 ≥ 0.8
+    proxy_df_filtered <- proxy_df %>% filter(R2 >= 0.8)
+
+    if (nrow(proxy_df_filtered) == 0) {
+      cat("No proxies with R2 ≥ 0.8 for SNP:", snp, "\n")
+      proxy_results[[snp]] <- NA
+      next
+    }
+
+    # Match to outcome_snps 
+    matching_proxies <- proxy_df_filtered$RS_Number[
+      proxy_df_filtered$RS_Number %in% outcome_snps 
+    ]
+
+    if (length(matching_proxies) == 0) {
+      cat("No valid matching proxies for", snp, "\n")
+      proxy_results[[snp]] <- NA
+      next
+    }
+
+    cat("Valid proxies for", snp, ":", paste(matching_proxies, collapse = ", "), "\n")
+    proxy_results[[snp]] <- matching_proxies
+    cat("Selected proxy for", snp, ":", proxy_results[[snp]], "\n")
+  }
+
+  # Count successful proxies
+  n_proxies_found <- sum(!is.na(unlist(proxy_results)))
+  cat("Proxies found and matched:", n_proxies_found, "\n")
+}
+
+
+# === Replace exposure data rows using valid proxies, if any were found ===
+
+if (n_proxies_found > 0) {
+
+  # Extract OID from exposure file path
+  oid <- str_extract(basename(exp), "OID[0-9]+")
+
+  # Build correct proxy file path using OID
+  proxy_file_path <- file.path(
+    paste0("combined_", oid, "_UKBB_proteomics_female_only.tsv.gz")
+  )
+
+  if (!file.exists(proxy_file_path)) {
+    stop("Proxy file does not exist for OID: ", oid, "\nExpected file: ", proxy_file_path)
+  }
+
+  cat("Using proxy file:", proxy_file_path, "\n")
+
+  # Read only necessary columns from the proxy file
+  proxy_df <- fread(proxy_file_path, select = c(
+    "rsid", "effect_allele", "other_allele", "beta", "standard_error",
+    "effect_allele_frequency", "p_value", "n"
+  ))
+
+  # For every proxy in proxy_results, update matching row in exp_data
+
+
+  proxy_log <- data.frame(
+  original_snp = character(),
+  proxy_used = character(),
+  stringsAsFactors = FALSE
+)
+
+for (i in seq_len(nrow(exp_data))) {
+  original_snp <- as.character(exp_data$SNP[i]) 
+
+  if (is.na(original_snp) || original_snp == "") {
+    cat("Skipping invalid SNP at row", i, ": NA or empty\n")
+    next
+  }
+
+  if (!(original_snp %in% names(proxy_results))) {
+    cat("SNP not found in proxy_results at row", i, ":", original_snp, "\n")
+    next
+  }
+
+ proxy_candidates <- proxy_results[[original_snp]]
+
+if (!is.null(proxy_candidates) && length(proxy_candidates) > 0) {
+  # Filter proxies that exist in the exposure proxy file
+  proxy_rows <- proxy_df %>% filter(rsid %in% proxy_candidates)
+
+  if (nrow(proxy_rows) == 0) {
+    cat("No proxy SNPs found in exposure proxy file for", original_snp, "\n")
+    next
+  }
+
+# Filter proxies with p-value ≤ 5e-8
+significant_proxies <- proxy_rows %>% filter(p_value <= 5e-8)
+
+if (nrow(significant_proxies) == 0) {
+  cat("No significant proxies (p ≤ 5e-8) found for", original_snp, "\n")
+  next
+}
+
+  # Select proxy with lowest p-value
+  proxy_row <- significant_proxies %>% arrange(p_value) %>% slice(1)
+  
+
+  exp_data$SNP[i] <- proxy_row$rsid
+  proxy_log <- rbind(proxy_log, data.frame(
+  original_snp = original_snp,
+  proxy_used = proxy_row$rsid,
+  stringsAsFactors = FALSE
+))
+
+  exp_data$effect_allele.exposure[i]  <- proxy_row$effect_allele
+  exp_data$other_allele.exposure[i]   <- proxy_row$other_allele
+  exp_data$beta.exposure[i]           <- proxy_row$beta
+  exp_data$se.exposure[i]             <- proxy_row$standard_error
+  exp_data$eaf.exposure[i]            <- proxy_row$effect_allele_frequency
+  exp_data$pval.exposure[i]           <- proxy_row$p_value
+  exp_data$pval_origin.exposure[i]    <- proxy_row$p_value
+  exp_dat$samplesize.exposure[i]     <- proxy_row$n
+
+  cat("Replaced SNP", original_snp, "with best proxy", proxy_row$rsid, "at row", i, "\n")
+    } else {
+      cat("Proxy candidates not found for SNP", original_snp, "at row", i, "\n")
+    }
+  }
+
+
+  # Save list of proxies used
+  log_file <- paste0("proxy_used_", oid, "_TC", ".tsv")
+  fwrite(proxy_log, log_file, sep = "\t")
+
+  cat("Saved proxy usage log to:", log_file, "\n")
+
+} else {
+  cat("No valid proxies found — skipping proxy replacement step.\n")
+}
+
 
 #
 # 1. Clumping of exposure data
@@ -186,9 +367,9 @@ tryCatch({
   p1 <- mr_scatter_plot(mr_results, dat)
   print(p1)
 }, error = function(e) {
-  cat("Errore nel grafico Scatter:", e$message, "\n")
+  cat("Error in Scatter plot:", e$message, "\n")
   plot.new()
-  text(0.5, 0.5, "Errore nel grafico Scatter", cex = 1.5)
+  text(0.5, 0.5, "Error in Scatter Plot", cex = 1.5)
 })
 
 ## Leave-one-out plot
@@ -197,14 +378,14 @@ tryCatch({
     p2 <- mr_leaveoneout_plot(res_leaveoneout)
     print(p2)
   } else {
-    cat("Leave-one-out plot non generato: dati assenti.\n")
+    cat("Leave-one-out plot was not generated: data not present.\n")
     plot.new()
-    text(0.5, 0.5, "Dati Leave-one-out non disponibili", cex = 1.5)
+    text(0.5, 0.5, "Leave-one-out data not available", cex = 1.5)
   }
 }, error = function(e) {
-  cat("Errore nel grafico Leave-one-out:", e$message, "\n")
+  cat("Error in Leave-one-out plot:", e$message, "\n")
   plot.new()
-  text(0.5, 0.5, "Errore nel grafico Leave-one-out", cex = 1.5)
+  text(0.5, 0.5, "Error in Leave-one-out plot", cex = 1.5)
 })
 
 dev.off()

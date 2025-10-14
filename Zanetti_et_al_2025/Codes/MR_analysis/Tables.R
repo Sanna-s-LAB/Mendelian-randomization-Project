@@ -7,14 +7,15 @@ library(tidyverse)
 library(readxl)
 library(tidyr)
 library(readr)
-source("~/Scripts_for_github/process_tables_functions.R")
+library(data.table)
+source("~/Tables_new/process_tables_functions.R")
 
-##### CIS+TRANS - FINAL RESULT FOR PAPER - TABLES #####
+##### ST1. FINAL RESULT FOR PAPER - TABLES #####
 
 ###### MEN ######
 
 # Upload file
-directory <- "~/Men/final_results_for_paper"
+directory <- "~/MR_onlycis_UKBB/MR_res_proxies/male"
 
 # Get the list of CSV files in the directory
 files <- list.files(directory, pattern = "\\.csv$", full.names = TRUE)
@@ -26,8 +27,7 @@ merged_df <- merged_df %>% dplyr::select(-any_of(c("ple", "het")))
 merged_df <- merged_df[,-c(1,2)] # remove id
 new_males <- merged_df
 indices_na_exposure <- which(is.na(merged_df$exposure)) # check for failed analyses, 
-colnames(new_males) <- c("outcome", "exposure", "method", "nsnp.men", "b.men","se.men","pval.men",
-                         "egger_intercept.ple.men","se.ple.men","pval.ple.men","Q.het.men","Q_df.het.men","Q_pval.het.men","IV_list.men")
+colnames(new_males)[4:ncol(new_males)] <- paste0(colnames(new_males)[4:ncol(new_males)], ".men")
 
 # Remove MR-PRESSO when we have 1, 2 or 3 SNPs because the row is empty (MR-PRESSO doesn't work)
 new_males <- new_males %>%
@@ -62,11 +62,8 @@ new_males <- new_males %>%
 
 # FDR correction 
 
-result_IVW <- new_males %>%
-  filter(method == "Inverse variance weighted")
-
-result_WR <- new_males %>%
-  filter(method == "Wald ratio")
+result_main <- new_males %>%
+     filter(method == "Inverse variance weighted" | method=="Wald ratio")
 
 result_Egger <- new_males %>%
   filter(method == "MR Egger")
@@ -83,22 +80,32 @@ result_PRESSO <- new_males %>%
 
 result_PRESSO$fdr.men <- c("NA")
 
-names(result_IVW)
+result_main$fdr.men<-p.adjust(result_main$pval.men, method="BH")
 
-result_IVW$fdr.men<-p.adjust(result_IVW$pval.men, method="BH")
-
-result_WR$fdr.men<-p.adjust(result_WR$pval.men, method="BH")
-
-men_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+men_all <- rbind(result_main,result_Egger,result_WM, result_PRESSO)
 
 str(men_all)
 men_all$fdr.men<- as.numeric(men_all$fdr.men)
 men_all$pval.men[men_all$nsnp.men == 0] <- 1 # set p-value to 1 when MR-PRESSO removes all SNPs
 
+leave_one_out <- read.table("~/MR_onlycis_UKBB/MR_res_proxies/male/leaveoneout_males.txt", header=T)
+# Merge all the leaveoneout files
+system("bash -c 'head -n 1 $(ls *leaveoneout*.txt | head -n 1) > leaveoneout_males.txt && tail -n +2 -q *leaveoneout*.txt >> leaveoneout_males.txt'")
+leave_one_out$id.exposure <- NULL
+leave_one_out$id.outcome <- NULL
+leave_one_out$samplesize <- NULL
+leave_one_out <- na.omit(leave_one_out)
+leave_one_out <- leave_one_out[!(leave_one_out$SNP == "All"),]
+final_men <- process_leave_one_out(
+  leave_one_out = leave_one_out,
+  base_data = men_all,
+  type = "men",
+  iv_list_col = "IV_list.men"
+)
 ###### WOMEN ######
 
 # Upload file
-directory <- "~/Women/final_results_for_paper"
+directory <- "~/MR_onlycis_UKBB/MR_res_proxies/female"
 
 # Get the list of CSV files in the directory
 files <- list.files(directory, pattern = "\\.csv$", full.names = TRUE)
@@ -110,8 +117,7 @@ merged_df_w  <- merged_df_w  %>% dplyr::select(-any_of(c("ple", "het")))
 merged_df_w  <- merged_df_w [,-c(1,2)] # remove id
 indices_na_exposure_w <- which(is.na(merged_df_w$exposure)) # check for failed analyses
 new_women <- merged_df_w 
-colnames(new_women) <- c("outcome", "exposure", "method", "nsnp.women", "b.women","se.women","pval.women",
-                         "egger_intercept.ple.women","se.ple.women","pval.ple.women","Q.het.women","Q_df.het.women","Q_pval.het.women","IV_list.women")
+colnames(new_women)[4:ncol(new_women)] <- paste0(colnames(new_women)[4:ncol(new_women)], ".women")
 
 # Remove MR-PRESSO when we have 1, 2 or 3 SNPs because the row is empty (MR-PRESSO doesn't work)
 new_women <- new_women %>%
@@ -144,11 +150,9 @@ new_women <- new_women %>%
   ungroup()
 
 # FDR correction
-result_IVW <- new_women %>%
-  filter(method == "Inverse variance weighted")
 
-result_WR <- new_women %>%
-  filter(method == "Wald ratio")
+result_main <- new_women %>%
+  filter(method == "Inverse variance weighted" | method=="Wald ratio")
 
 result_Egger <- new_women %>%
   filter(method == "MR Egger")
@@ -165,22 +169,31 @@ result_PRESSO <- new_women %>%
 
 result_PRESSO$fdr.women <- c("NA")
 
-names(result_IVW)
-
-result_IVW$fdr.women<-p.adjust(result_IVW$pval.women, method="BH")
-
-result_WR$fdr.women<-p.adjust(result_WR$pval.women, method="BH")
-
-women_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+result_main$fdr.women<-p.adjust(result_main$pval.women, method="BH")
+women_all <- rbind(result_main,result_Egger,result_WM, result_PRESSO)
 
 str(women_all)
 women_all$fdr.women<- as.numeric(women_all$fdr.women)
 women_all$pval.women[women_all$nsnp.women == 0] <- 1 # set p-value to 1 when MR-PRESSO removes all SNPs
 
+leave_one_out <- read.table("~/MR_onlycis_UKBB/MR_res_proxies/female/leaveoneout_females.txt", header=T)
+# Merge all the leaveoneout files
+system("bash -c 'head -n 1 $(ls *leaveoneout*.txt | head -n 1) > leaveoneout_females.txt && tail -n +2 -q *leaveoneout*.txt >> leaveoneout_females.txt'")
+leave_one_out$id.exposure <- NULL
+leave_one_out$id.outcome <- NULL
+leave_one_out$samplesize <- NULL
+leave_one_out <- na.omit(leave_one_out)
+leave_one_out <- leave_one_out[!(leave_one_out$SNP == "All"),]
+final_women <- process_leave_one_out(
+  leave_one_out = leave_one_out,
+  base_data = women_all,
+  type = "women",
+  iv_list_col = "IV_list.women"
+)
 ######  ALL ######
 
 # Upload file
-directory <- "~/All/final_results_for_paper"
+directory <- "~/MR_onlycis_UKBB/MR_res_proxies/MA"
 
 # Get the list of CSV files in the directory
 files <- list.files(directory, pattern = "\\.csv$", full.names = TRUE)
@@ -227,11 +240,10 @@ new_all <- new_all %>%
 
 
 # FDR correction
-result_IVW <- new_all %>%
-  filter(method == "Inverse variance weighted")
 
-result_WR <- new_all %>%
-  filter(method == "Wald ratio")
+result_main <- new_all %>%
+  filter(method == "Inverse variance weighted" | method=="Wald ratio")
+
 
 result_Egger <- new_all %>%
   filter(method == "MR Egger")
@@ -248,612 +260,34 @@ result_PRESSO <- new_all %>%
 
 result_PRESSO$fdr.all <- c("NA")
 
-names(result_IVW)
-
-result_IVW$fdr.all<-p.adjust(result_IVW$pval.all, method="BH")
-
-result_WR$fdr.all<-p.adjust(result_WR$pval.all, method="BH")
-
-all_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
+result_main$fdr.all<-p.adjust(result_main$pval.all, method="BH")
+all_all <- rbind(result_main,result_Egger,result_WM, result_PRESSO)
 
 str(all_all)
 all_all$fdr.all<- as.numeric(all_all$fdr.all)
 all_all$pval.all[all_all$nsnp.all == 0] <- 1 # set p-value to 1 when MR-PRESSO removes all SNPs
 
 
-######  ST1. TABLE of ALL RESULTS (significant or not) #####
+######  TABLE of ALL RESULTS (significant or not) #####
 
-setwd("~/")
-ALL_RESULTS <- merge(women_all,men_all, by=c("exposure","outcome", "method"),all = TRUE)
+setwd("~/Tables_new")
+ALL_RESULTS <- merge(final_women,final_men, by=c("exposure","outcome", "method"),all = TRUE)
 ALL_RESULTS <- merge(ALL_RESULTS, all_all, by=c("exposure","outcome", "method"), all=TRUE)
 ALL_RESULTS <- ALL_RESULTS[order(ALL_RESULTS$exposure, ALL_RESULTS$outcome, ALL_RESULTS$method, decreasing = FALSE), ]
 ALL_RESULTS <- ALL_RESULTS[!is.na(ALL_RESULTS$exposure), ]
 
-to_keep_w <- women_all %>%
-  select(exposure, outcome) %>%
-  distinct()
+write.xlsx(ALL_RESULTS, "~/Tables_new/AllCIS_results.xlsx")
 
-to_keep_m <- men_all %>%
-  select(exposure, outcome) %>%
-  distinct()
+###### TABLES with columns ####
 
-t<- inner_join(to_keep_w,to_keep_m) # to keep only common associations
+setwd("~/Tables_new")
+proteins <- data.table::fread("~/olink_protein_map_3k_v1.tsv")
+proteins<-subset(proteins,select =c("OlinkID","Assay","UniProt","olink_target_fullname"))
+proteins <- proteins[!duplicated(proteins), ]
 
-ALL_RESULTS1 <- inner_join(ALL_RESULTS,t)
+colnames(proteins) <- c("exposure","Assay","UniProt","olink_target_fullname")
 
-write.xlsx(ALL_RESULTS1, "~/Results tables/All_results.xlsx")
-
-# To count common associations
-n<- ALL_RESULTS1 %>%
-  select(exposure, outcome) %>%
-  distinct()
-
-
-##### CIS - FINAL RESULT FOR PAPER - TABLES #####
-
-######  MEN #####
-
-# Upload file
-directory <- "~/Men/cis_trans/final_results_for_paper"
-
-# Get the list of CSV files in the directory
-files <- list.files(directory, pattern = ".*_cis_.*\\.csv$", full.names = TRUE)
-df_list <- lapply(files, read.csv, header = TRUE, stringsAsFactors = FALSE)
-merged_df <- rbind.fill(df_list)
-
-# Remove columns "ple" or "het"
-merged_df <- merged_df %>% dplyr::select(-any_of(c("ple", "het")))
-merged_df <- merged_df[,-c(1,2)] # remove id
-new_males <- merged_df
-indices_na_exposure <- which(is.na(merged_df$exposure)) # check for failed analyses, 
-colnames(new_males) <- c("outcome", "exposure", "method", "nsnp.men", "b.men","se.men","pval.men","IV_list.men",
-                         "egger_intercept.ple.men","se.ple.men","pval.ple.men","Q.het.men","Q_df.het.men","Q_pval.het.men")
-
-# Remove MR-PRESSO when we have 1, 2 or 3 SNPs because the row is empty (MR-PRESSO doesn't work)
-new_males <- new_males %>%
-  group_by(outcome, exposure) %>%
-  filter(
-    !(
-      method == "MR-PRESSO" & 
-        any(nsnp.men %in% c(1,2,3) & method != "MR-PRESSO")
-    ) & 
-      !(is.na(exposure) | exposure == "" )
-  ) %>%
-  ungroup()
-
-
-# Put heterogeneity analyses in the same row of their methods
-new_males <- new_males %>%
-  group_by(outcome, exposure) %>%
-  dplyr::mutate(
-    Q.het.men = ifelse( dplyr::n() > 2 & method == "Inverse variance weighted",
-                        Q.het.men[method == "Weighted median"], Q.het.men),
-    Q_df.het.men = ifelse( dplyr::n() > 2 & method == "Inverse variance weighted",
-                           Q_df.het.men[method == "Weighted median"], Q_df.het.men),
-    Q_pval.het.men = ifelse( dplyr::n() > 2 & method == "Inverse variance weighted",
-                             Q_pval.het.men[method == "Weighted median"], Q_pval.het.men)
-  ) %>%
-  dplyr::mutate(
-    Q.het.men = ifelse( dplyr::n() > 2 & method == "Weighted median", NA, Q.het.men),
-    Q_df.het.men = ifelse( dplyr::n() > 2 & method == "Weighted median", NA, Q_df.het.men),
-    Q_pval.het.men = ifelse( dplyr::n() > 2 & method == "Weighted median", NA, Q_pval.het.men)
-  ) %>%
-  ungroup()
-
-# FDR correction 
-result_IVW <- new_males %>%
-  filter(method == "Inverse variance weighted")
-
-result_WR <- new_males %>%
-  filter(method == "Wald ratio")
-
-result_Egger <- new_males %>%
-  filter(method == "MR Egger")
-
-result_Egger$fdr.men <- c("NA")
-
-result_WM <- new_males %>%
-  filter(method == "Weighted median")
-
-result_WM$fdr.men <-  c("NA")
-
-result_PRESSO <- new_males %>%
-  filter(method == "MR-PRESSO")
-
-result_PRESSO$fdr.men <- c("NA")
-
-names(result_IVW)
-
-result_IVW$fdr.men<-p.adjust(result_IVW$pval.men, method="BH")
-result_WR$fdr.men<-p.adjust(result_WR$pval.men, method="BH")
-
-men_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
-
-str(men_all)
-men_all$fdr.men<- as.numeric(men_all$fdr.men)
-men_all$pval.men[men_all$nsnp.men == 0] <- 1 # set p-value to 1 when MR-PRESSO removes all SNPs
-
-######  WOMEN #####
-
-# Upload file
-directory <- "~/Women/cis_trans/final_results_for_paper"
-
-# Get the list of CSV files in the directory
-files <- list.files(directory, pattern = ".*_cis_.*\\.csv$", full.names = TRUE)
-df_list <- lapply(files, read.csv, header = TRUE, stringsAsFactors = FALSE)
-merged_df_w <- rbind.fill(df_list)
-
-# Remove columns "ple" or "het"
-merged_df_w  <- merged_df_w  %>% dplyr::select(-any_of(c("ple", "het")))
-merged_df_w  <- merged_df_w [,-c(1,2)] # remove id
-indices_na_exposure_w <- which(is.na(merged_df_w$exposure)) # check for failed analyses
-new_women <- merged_df_w 
-colnames(new_women) <- c("outcome", "exposure", "method", "nsnp.women", "b.women","se.women","pval.women",
-                         "egger_intercept.ple.women","se.ple.women","pval.ple.women","Q.het.women","Q_df.het.women","Q_pval.het.women","IV_list.women")
-
-# Remove MR-PRESSO when we have 1, 2 or 3 SNPs because the row is empty (MR-PRESSO doesn't work)
-new_women <- new_women %>%
-  group_by(outcome, exposure) %>%
-  filter(
-    !(
-      method == "MR-PRESSO" & 
-        any(nsnp.women %in% c(1,2,3) & method != "MR-PRESSO")
-    ) & 
-      !(is.na(exposure) | exposure == "" )
-  ) %>%
-  ungroup()
-
-# Put heterogeneity analyses in the same row of their methods
-new_women <- new_women %>%
-  group_by(outcome, exposure) %>%
-  dplyr::mutate(
-    Q.het.women = ifelse(dplyr::n() > 2 & method == "Inverse variance weighted",
-                         Q.het.women[method == "Weighted median"], Q.het.women),
-    Q_df.het.women = ifelse(dplyr::n() > 2 & method == "Inverse variance weighted",
-                            Q_df.het.women[method == "Weighted median"], Q_df.het.women),
-    Q_pval.het.women = ifelse(dplyr::n() > 2 & method == "Inverse variance weighted",
-                              Q_pval.het.women[method == "Weighted median"], Q_pval.het.women)
-  ) %>%
-  dplyr::mutate(
-    Q.het.women = ifelse(dplyr::n() > 2 & method == "Weighted median", NA, Q.het.women),
-    Q_df.het.women = ifelse(dplyr::n() > 2 & method == "Weighted median", NA, Q_df.het.women),
-    Q_pval.het.women = ifelse(dplyr::n() > 2 & method == "Weighted median", NA, Q_pval.het.women)
-  ) %>%
-  ungroup()
-
-# FDR correction
-result_IVW <- new_women %>%
-  filter(method == "Inverse variance weighted")
-
-result_WR <- new_women %>%
-  filter(method == "Wald ratio")
-
-result_Egger <- new_women %>%
-  filter(method == "MR Egger")
-
-result_Egger$fdr.women <- c("NA")
-
-result_WM <- new_women %>%
-  filter(method == "Weighted median")
-
-result_WM$fdr.women <-  c("NA")
-
-result_PRESSO <- new_women %>%
-  filter(method == "MR-PRESSO")
-
-result_PRESSO$fdr.women <- c("NA")
-
-names(result_IVW)
-
-result_IVW$fdr.women<-p.adjust(result_IVW$pval.women, method="BH")
-
-result_WR$fdr.women<-p.adjust(result_WR$pval.women, method="BH")
-
-women_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
-
-str(women_all)
-women_all$fdr.women<- as.numeric(women_all$fdr.women)
-women_all$pval.women[women_all$nsnp.women == 0] <- 1 # set p-value to 1 when MR-PRESSO removes all SNPs
-
-######  ALL #####
-
-# Upload file
-directory <- "~/All/cis_trans/final_results_for_paper"
-
-# Get the list of CSV files in the directory
-files <- list.files(directory, pattern = ".*_cis_.*\\.csv$", full.names = TRUE)
-df_list <- lapply(files, read.csv, header = TRUE, stringsAsFactors = FALSE)
-merged_df_a <- rbind.fill(df_list)
-
-# Remove columns "ple" or "het"
-merged_df_a <- merged_df_a %>% dplyr::select(-any_of(c("ple", "het")))
-merged_df_a <- merged_df_a[,-c(1,2)] # remove id
-indices_na_exposure_a <- which(is.na(merged_df_a$exposure)) # check for failed analyses
-
-new_all <- merged_df_a
-colnames(new_all) <- c("outcome", "exposure", "method", "nsnp.all", "b.all","se.all","pval.all",
-                       "egger_intercept.ple.all","se.ple.all","pval.ple.all","Q.het.all","Q_df.het.all","Q_pval.het.all","IV_list.all")
-
-new_all <- new_all %>%
-  group_by(outcome, exposure) %>%
-  filter(
-    !(
-      method == "MR-PRESSO" &
-        any(nsnp.all %in% c(1,2,3) & method != "MR-PRESSO")
-    ) &
-      !(is.na(exposure) | exposure == "" )
-  ) %>%
-  ungroup()
-
-new_all <- new_all %>%
-  group_by(outcome, exposure) %>%
-  dplyr::mutate(
-    Q.het.all = ifelse(dplyr::n() > 2 & method == "Inverse variance weighted",
-                       Q.het.all[method == "Weighted median"], Q.het.all),
-    Q_df.het.all = ifelse(dplyr::n() > 2 & method == "Inverse variance weighted",
-                          Q_df.het.all[method == "Weighted median"], Q_df.het.all),
-    Q_pval.het.all = ifelse(dplyr::n() > 2 & method == "Inverse variance weighted",
-                            Q_pval.het.all[method == "Weighted median"], Q_pval.het.all)
-  ) %>%
-  dplyr::mutate(
-    Q.het.all = ifelse(dplyr::n() > 2 & method == "Weighted median", NA, Q.het.all),
-    Q_df.het.all = ifelse(dplyr::n() > 2 & method == "Weighted median", NA, Q_df.het.all),
-    Q_pval.het.all = ifelse(dplyr::n() > 2 & method == "Weighted median", NA, Q_pval.het.all)
-  ) %>%
-  ungroup()
-
-
-# FDR correction 
-result_IVW <- new_all %>%
-  filter(method == "Inverse variance weighted")
-
-result_WR <- new_all %>%
-  filter(method == "Wald ratio")
-
-result_Egger <- new_all %>%
-  filter(method == "MR Egger")
-
-result_Egger$fdr.all <- c("NA")
-
-result_WM <- new_all %>%
-  filter(method == "Weighted median")
-
-result_WM$fdr.all <-  c("NA")
-
-result_PRESSO <- new_all %>%
-  filter(method == "MR-PRESSO")
-
-result_PRESSO$fdr.all <- c("NA")
-
-names(result_IVW)
-
-result_IVW$fdr.all<-p.adjust(result_IVW$pval.all, method="BH")
-
-result_WR$fdr.all<-p.adjust(result_WR$pval.all, method="BH")
-
-all_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
-
-str(all_all)
-all_all$fdr.all<- as.numeric(all_all$fdr.all)
-
-all_all$pval.all[all_all$nsnp.all == 0] <- 1 # set p-value to 1 when MR-PRESSO removes all SNPs
-
-######  ST2. TABLE of ALL RESULTS (significant or not) #####
-
-setwd("~/")
-ALL_RESULTS <- merge(women_all,men_all, by=c("exposure","outcome", "method"),all = TRUE)
-ALL_RESULTS <- merge(ALL_RESULTS, all_all, by=c("exposure","outcome", "method"), all=TRUE)
-ALL_RESULTS <- ALL_RESULTS[order(ALL_RESULTS$exposure, ALL_RESULTS$outcome, ALL_RESULTS$method, decreasing = FALSE), ]
-ALL_RESULTS <- ALL_RESULTS[!is.na(ALL_RESULTS$exposure), ]
-
-to_keep_w <- women_all %>%
-  select(exposure, outcome) %>%
-  distinct()
-
-to_keep_m <- men_all %>%
-  select(exposure, outcome) %>%
-  distinct()
-
-t<- inner_join(to_keep_w,to_keep_m) # to keep only common associations
-
-ALL_RESULTS1 <- inner_join(ALL_RESULTS,t)
-
-write.xlsx(ALL_RESULTS1, "~/Results tables/All_results_CIS.xlsx")
-
-# To count common associations
-n<- ALL_RESULTS1 %>%
-  select(exposure, outcome) %>%
-  distinct()
-
-
-### TRANS - FINAL RESULT FOR PAPER - TABLES ####
-
-###### MEN ######
-
-# Upload file
-directory <- "~/Men/cis_trans/final_results_for_paper"
-
-# Get the list of CSV files in the directory
-files <- list.files(directory, pattern = ".*_trans_.*\\.csv$", full.names = TRUE)
-df_list <- lapply(files, read.csv, header = TRUE, stringsAsFactors = FALSE)
-merged_df <- rbind.fill(df_list)
-
-# Remove columns "ple" or "het"
-merged_df <- merged_df %>% dplyr::select(-any_of(c("ple", "het")))
-merged_df <- merged_df[,-c(1,2)] # remove id
-new_males <- merged_df
-indices_na_exposure <- which(is.na(merged_df$exposure)) # check for failed analyses, 
-colnames(new_males) <- c("outcome", "exposure", "method", "nsnp.men", "b.men","se.men","pval.men","IV_list.men",
-                         "egger_intercept.ple.men","se.ple.men","pval.ple.men","Q.het.men","Q_df.het.men","Q_pval.het.men")
-
-# Remove MR-PRESSO when we have 1, 2 or 3 SNPs because the row is empty (MR-PRESSO doesn't work)
-new_males <- new_males %>%
-  group_by(outcome, exposure) %>%
-  filter(
-    !(
-      method == "MR-PRESSO" & 
-        any(nsnp.men %in% c(1,2,3) & method != "MR-PRESSO")
-    ) & 
-      !(is.na(exposure) | exposure == "" )
-  ) %>%
-  ungroup()
-
-
-# Put heterogeneity analyses in the same row of their methods
-new_males <- new_males %>%
-  group_by(outcome, exposure) %>%
-  dplyr::mutate(
-    Q.het.men = ifelse( dplyr::n() > 2 & method == "Inverse variance weighted",
-                        Q.het.men[method == "Weighted median"], Q.het.men),
-    Q_df.het.men = ifelse( dplyr::n() > 2 & method == "Inverse variance weighted",
-                           Q_df.het.men[method == "Weighted median"], Q_df.het.men),
-    Q_pval.het.men = ifelse( dplyr::n() > 2 & method == "Inverse variance weighted",
-                             Q_pval.het.men[method == "Weighted median"], Q_pval.het.men)
-  ) %>%
-  dplyr::mutate(
-    Q.het.men = ifelse( dplyr::n() > 2 & method == "Weighted median", NA, Q.het.men),
-    Q_df.het.men = ifelse( dplyr::n() > 2 & method == "Weighted median", NA, Q_df.het.men),
-    Q_pval.het.men = ifelse( dplyr::n() > 2 & method == "Weighted median", NA, Q_pval.het.men)
-  ) %>%
-  ungroup()
-
-# FDR correction 
-result_IVW <- new_males %>%
-  filter(method == "Inverse variance weighted")
-
-result_WR <- new_males %>%
-  filter(method == "Wald ratio")
-
-result_Egger <- new_males %>%
-  filter(method == "MR Egger")
-
-result_Egger$fdr.men <- c("NA")
-
-result_WM <- new_males %>%
-  filter(method == "Weighted median")
-
-result_WM$fdr.men <-  c("NA")
-
-result_PRESSO <- new_males %>%
-  filter(method == "MR-PRESSO")
-
-result_PRESSO$fdr.men <- c("NA")
-
-names(result_IVW)
-
-result_IVW$fdr.men<-p.adjust(result_IVW$pval.men, method="BH")
-
-result_WR$fdr.men<-p.adjust(result_WR$pval.men, method="BH")
-
-men_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
-
-str(men_all)
-men_all$fdr.men<- as.numeric(men_all$fdr.men)
-men_all$pval.men[men_all$nsnp.men == 0] <- 1 # set p-value to 1 when MR-PRESSO removes all SNPs
-
-######  WOMEN #####
-
-# Upload file
-directory <- "~/Women/cis_trans/final_results_for_paper"
-
-# Get the list of CSV files in the directory
-files <- list.files(directory, pattern = ".*_trans_.*\\.csv$", full.names = TRUE)
-df_list <- lapply(files, read.csv, header = TRUE, stringsAsFactors = FALSE)
-merged_df_w <- rbind.fill(df_list)
-
-# Remove columns "ple" or "het"
-merged_df_w  <- merged_df_w  %>% dplyr::select(-any_of(c("ple", "het")))
-merged_df_w  <- merged_df_w [,-c(1,2)] # remove id
-indices_na_exposure_w <- which(is.na(merged_df_w$exposure)) # check for failed analyses
-new_women <- merged_df_w 
-colnames(new_women) <- c("outcome", "exposure", "method", "nsnp.women", "b.women","se.women","pval.women",
-                         "egger_intercept.ple.women","se.ple.women","pval.ple.women","Q.het.women","Q_df.het.women","Q_pval.het.women","IV_list.women")
-
-# Remove MR-PRESSO when we have 1, 2 or 3 SNPs because the row is empty (MR-PRESSO doesn't work)
-new_women <- new_women %>%
-  group_by(outcome, exposure) %>%
-  filter(
-    !(
-      method == "MR-PRESSO" & 
-        any(nsnp.women %in% c(1,2,3) & method != "MR-PRESSO")
-    ) & 
-      !(is.na(exposure) | exposure == "" )
-  ) %>%
-  ungroup()
-
-# Put heterogeneity analyses in the same row of their methods
-new_women <- new_women %>%
-  group_by(outcome, exposure) %>%
-  dplyr::mutate(
-    Q.het.women = ifelse(dplyr::n() > 2 & method == "Inverse variance weighted",
-                         Q.het.women[method == "Weighted median"], Q.het.women),
-    Q_df.het.women = ifelse(dplyr::n() > 2 & method == "Inverse variance weighted",
-                            Q_df.het.women[method == "Weighted median"], Q_df.het.women),
-    Q_pval.het.women = ifelse(dplyr::n() > 2 & method == "Inverse variance weighted",
-                              Q_pval.het.women[method == "Weighted median"], Q_pval.het.women)
-  ) %>%
-  dplyr::mutate(
-    Q.het.women = ifelse(dplyr::n() > 2 & method == "Weighted median", NA, Q.het.women),
-    Q_df.het.women = ifelse(dplyr::n() > 2 & method == "Weighted median", NA, Q_df.het.women),
-    Q_pval.het.women = ifelse(dplyr::n() > 2 & method == "Weighted median", NA, Q_pval.het.women)
-  ) %>%
-  ungroup()
-
-# FDR correction 
-result_IVW <- new_women %>%
-  filter(method == "Inverse variance weighted")
-
-result_WR <- new_women %>%
-  filter(method == "Wald ratio")
-
-result_Egger <- new_women %>%
-  filter(method == "MR Egger")
-
-result_Egger$fdr.women <- c("NA")
-
-result_WM <- new_women %>%
-  filter(method == "Weighted median")
-
-result_WM$fdr.women <-  c("NA")
-
-result_PRESSO <- new_women %>%
-  filter(method == "MR-PRESSO")
-
-result_PRESSO$fdr.women <- c("NA")
-
-names(result_IVW)
-
-result_IVW$fdr.women<-p.adjust(result_IVW$pval.women, method="BH")
-
-result_WR$fdr.women<-p.adjust(result_WR$pval.women, method="BH")
-
-women_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
-
-str(women_all)
-women_all$fdr.women<- as.numeric(women_all$fdr.women)
-women_all$pval.women[women_all$nsnp.women == 0] <- 1 # set p-value to 1 when MR-PRESSO removes all SNPs
-
-######  ALL #####
-
-# Upload file
-directory <- "~/All/cis_trans/final_results_for_paper"
-
-# Get the list of CSV files in the directory
-files <- list.files(directory, pattern = ".*_trans_.*\\.csv$", full.names = TRUE)
-df_list <- lapply(files, read.csv, header = TRUE, stringsAsFactors = FALSE)
-merged_df_a <- rbind.fill(df_list)
-
-# Remove columns "ple" or "het"
-merged_df_a <- merged_df_a %>% dplyr::select(-any_of(c("ple", "het")))
-merged_df_a <- merged_df_a[,-c(1,2)] # remove id
-indices_na_exposure_a <- which(is.na(merged_df_a$exposure)) # check for failed analyses
-new_all <- merged_df_a
-colnames(new_all) <- c("outcome", "exposure", "method", "nsnp.all", "b.all","se.all","pval.all",
-                       "egger_intercept.ple.all","se.ple.all","pval.ple.all","Q.het.all","Q_df.het.all","Q_pval.het.all","IV_list.all")
-
-# Remove MR-PRESSO when we have 1, 2 or 3 SNPs because the row is empty (MR-PRESSO doesn't work)
-new_all <- new_all %>%
-  group_by(outcome, exposure) %>%
-  filter(
-    !(
-      method == "MR-PRESSO" &
-        any(nsnp.all %in% c(1,2,3) & method != "MR-PRESSO")
-    ) &
-      !(is.na(exposure) | exposure == "" )
-  ) %>%
-  ungroup()
-
-# Put heterogeneity analyses in the same row of their methods
-new_all <- new_all %>%
-  group_by(outcome, exposure) %>%
-  dplyr::mutate(
-    Q.het.all = ifelse(dplyr::n() > 2 & method == "Inverse variance weighted",
-                       Q.het.all[method == "Weighted median"], Q.het.all),
-    Q_df.het.all = ifelse(dplyr::n() > 2 & method == "Inverse variance weighted",
-                          Q_df.het.all[method == "Weighted median"], Q_df.het.all),
-    Q_pval.het.all = ifelse(dplyr::n() > 2 & method == "Inverse variance weighted",
-                            Q_pval.het.all[method == "Weighted median"], Q_pval.het.all)
-  ) %>%
-  dplyr::mutate(
-    Q.het.all = ifelse(dplyr::n() > 2 & method == "Weighted median", NA, Q.het.all),
-    Q_df.het.all = ifelse(dplyr::n() > 2 & method == "Weighted median", NA, Q_df.het.all),
-    Q_pval.het.all = ifelse(dplyr::n() > 2 & method == "Weighted median", NA, Q_pval.het.all)
-  ) %>%
-  ungroup()
-
-
-# FDR correction
-result_IVW <- new_all %>%
-  filter(method == "Inverse variance weighted")
-
-result_WR <- new_all %>%
-  filter(method == "Wald ratio")
-
-result_Egger <- new_all %>%
-  filter(method == "MR Egger")
-
-result_Egger$fdr.all <- c("NA")
-
-result_WM <- new_all %>%
-  filter(method == "Weighted median")
-
-result_WM$fdr.all <-  c("NA")
-
-result_PRESSO <- new_all %>%
-  filter(method == "MR-PRESSO")
-
-result_PRESSO$fdr.all <- c("NA")
-
-names(result_IVW)
-
-result_IVW$fdr.all<-p.adjust(result_IVW$pval.all, method="BH")
-
-result_WR$fdr.all<-p.adjust(result_WR$pval.all, method="BH")
-
-all_all <- rbind(result_IVW, result_WR,result_Egger,result_WM, result_PRESSO)
-
-str(all_all)
-all_all$fdr.all<- as.numeric(all_all$fdr.all)
-
-all_all$pval.all[all_all$nsnp.all == 0] <- 1 # set p-value to 1 when MR-PRESSO removes all SNPs
-
-######  ST3. TABLE of ALL RESULTS (significant or not) #####
-
-setwd("~/")
-ALL_RESULTS <- merge(women_all,men_all, by=c("exposure","outcome", "method"),all = TRUE)
-ALL_RESULTS <- merge(ALL_RESULTS, all_all, by=c("exposure","outcome", "method"), all=TRUE)
-ALL_RESULTS <- ALL_RESULTS[order(ALL_RESULTS$exposure, ALL_RESULTS$outcome, ALL_RESULTS$method, decreasing = FALSE), ]
-ALL_RESULTS <- ALL_RESULTS[!is.na(ALL_RESULTS$exposure), ]
-
-to_keep_w <- women_all %>%
-  select(exposure, outcome) %>%
-  distinct()
-
-to_keep_m <- men_all %>%
-  select(exposure, outcome) %>%
-  distinct()
-
-t<- inner_join(to_keep_w,to_keep_m) # to keep only common associations
-
-ALL_RESULTS1 <- inner_join(ALL_RESULTS,t)
-
-write.xlsx(ALL_RESULTS1, "~/Results tables/All_results_TRANS.xlsx")
-
-# To count common associations
-n<- ALL_RESULTS1 %>%
-  select(exposure, outcome) %>%
-  distinct()
-
-
-
-##### TABLES with columns ####
-
-setwd("~/Results tables")
-proteins <- read.table("~/ProteinsNames_new.csv",header=T,as.is=T,sep=",")
-proteins<-subset(proteins,select =c("Assay","UniProt","exposure","Name"))
-
-###### CIS+TRANS #######
-ALL_RESULTS <- read_excel("All_results.xlsx")
+ALL_RESULTS <- read_excel("AllCIS_results.xlsx")
 
 # Select only Wald ratio results to compute variance explained
 Sig_men_Wald <- ALL_RESULTS %>%
@@ -862,14 +296,18 @@ Sig_men_Wald <- ALL_RESULTS %>%
     method == "Wald ratio" & !is.na(fdr.men))%>%
   ungroup()
 
-men <-  read.table("~/Men/final_results_for_paper/dat.males.txt",as.is=T,sep="\t")
-colnames(men) <- c("SNP","effect_allele.exposure","other_allele.exposure","effect_allele.outcome","other_allele.outcome","beta.exposure","beta.outcome","eaf.exposure","eaf.outcome","remove","palindromic","ambiguous","id.outcome","se.outcome","pval.outcome","samplesize.outcome","outcome","mr_keep.outcome","pval_origin.outcome","data_source.outcome","samplesize.exposure","se.exposure","pval.exposure","id.exposure","exposure","mr_keep.exposure","pval_origin.exposure","data_source.exposure","action","SNP_index","mr_keep")
+# Merge all the leaveoneout files
+#system("bash -c 'head -n 1 $(ls *dat*.txt | head -n 1) > dat_males.txt && tail -n +2 -q *dat*.txt >> dat_males.txt'")
+
+men <-  read.table("~/MR_onlycis_UKBB/MR_res_proxies/male/dat_males.txt",as.is=T,sep="\t", header = T)
 men2 <- men %>%
   filter(remove == "FALSE" &  ambiguous == "FALSE") 
-men3<- men2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-colnames(men3)<- c("IV_list.men" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-men_WR.sig <- merge(Sig_men_Wald, men3, by=c("exposure","outcome","IV_list.men"), all.x=TRUE)
+men3<- men2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  )
+colnames(men3)<- c("IV_list.men" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure" )
+men3 <- men3[!duplicated(men3), ]
+men_WR.sig <- merge(Sig_men_Wald, men3, by=c("exposure","IV_list.men"), all.x=TRUE)
 men_WR.sig$exp_var <- explained_variance(men_WR.sig,men_WR.sig$samplesize.exposure)
+
 men_WR.sig1 <- data.frame(men_WR.sig$exposure,men_WR.sig$outcome,men_WR.sig$method,men_WR.sig$exp_var)
 colnames(men_WR.sig1)<-c("exposure","outcome","method","exp_var.men")
 Sig_men <- merge(ALL_RESULTS,men_WR.sig1, by=c("exposure","outcome","method"),all = T)
@@ -880,15 +318,13 @@ Sig_women_Wald <- ALL_RESULTS %>%
     method == "Wald ratio" & !is.na(fdr.women))%>%
   ungroup()
 
-women <- read.table("~/Women/final_results_for_paper/dat.females.txt",header=T,as.is=T,sep="\t")
-colnames(women) <- c("SNP","effect_allele.exposure","other_allele.exposure","effect_allele.outcome","other_allele.outcome","beta.exposure","beta.outcome","eaf.exposure","eaf.outcome","remove","palindromic","ambiguous","id.outcome","se.outcome","pval.outcome","samplesize.outcome","outcome","mr_keep.outcome","pval_origin.outcome","data_source.outcome","samplesize.exposure","se.exposure","pval.exposure","id.exposure","exposure","mr_keep.exposure","pval_origin.exposure","data_source.exposure","action","SNP_index","mr_keep")
+women <- read.table("~/MR_onlycis_UKBB/MR_res_proxies/female/dat_females.txt",header=T,as.is=T,sep="\t")
 women2 <- women %>%
   filter(remove == "FALSE" &  ambiguous == "FALSE")
-women3<- women2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-
-
-colnames(women3)<- c("IV_list.women" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-women_WR.sig <- merge(Sig_women_Wald, women3, by=c("exposure","outcome","IV_list.women"), all.x=TRUE)
+women3<- women2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure" )
+colnames(women3)<- c("IV_list.women" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"   )
+women3 <- women3[!duplicated(women3), ]
+women_WR.sig <- merge(Sig_women_Wald, women3, by=c("exposure","IV_list.women"), all.x=TRUE)
 women_WR.sig$exp_var <- explained_variance(women_WR.sig,women_WR.sig$samplesize.exposure)
 women_WR.sig1 <- data.frame(women_WR.sig$exposure,women_WR.sig$outcome,women_WR.sig$method,women_WR.sig$exp_var)
 colnames(women_WR.sig1)<-c("exposure","outcome","method","exp_var.women")
@@ -896,266 +332,67 @@ colnames(women_WR.sig1)<-c("exposure","outcome","method","exp_var.women")
 # All results with variance explained columns for Wald ratio results
 ALL_RESULTS1 <- merge(Sig_men,women_WR.sig1, by=c("exposure","outcome","method"),all = T)
 
-# Process tables with process_tables function to add the "SignificantBysex" column
-final2 <- process_tables(ALL_RESULTS1)
-final3 <-  merge(final2, proteins, by ="exposure")
-write.xlsx(final3,"~/Results tables/Final_results_with_column.xlsx")
 
-# Select only significant results
-Sig_womenORmen <- final3 %>%
-  dplyr::group_by(exposure, outcome) %>%
-  filter(SignificantBysex %in% c(1,2,3,4)) %>%
-  ungroup()
+# Apply function to add significance columns
+final <- process_tables(ALL_RESULTS1)
+final <- merge(final, proteins, by="exposure")
+final1 <- process_tables_truly_sex_specific(final)
+write.xlsx(final1,"~/Tables_new/ST1_all_results.xlsx")
 
-# Add Cochran's Q values
-Sig_womenORmen$`Diff Beta WOMEN-MEN` <- abs(Sig_womenORmen$b.women)-abs(Sig_womenORmen$b.men)
-Sig_womenORmen$`Q COCHRAN_WEIGHTED BETA` <- (Sig_womenORmen$b.women*(1/Sig_womenORmen$se.women^2) 
-                                             + Sig_womenORmen$b.men*(1/Sig_womenORmen$se.men^2)) / 
-  ((1/Sig_womenORmen$se.women^2)+(1/Sig_womenORmen$se.men^2))
-Sig_womenORmen$Q_Cochran_pvalue <- 1 - pchisq((1/Sig_womenORmen$se.women^2) * 
-                                                (Sig_womenORmen$b.women- Sig_womenORmen$`Q COCHRAN_WEIGHTED BETA`)^2 + 
-                                                (1/Sig_womenORmen$se.men^2) * (Sig_womenORmen$b.men - Sig_womenORmen$`Q COCHRAN_WEIGHTED BETA`)^2, df = 1)
+##### ST2. LEAVE-ONE-OUT TABLE ######
 
+leave_one_out_m <- read.table("~/MR_onlycis_UKBB/MR_res_proxies/male/leaveoneout_males.txt", header=F)
+colnames(leave_one_out_m) <- c("exposure",	"outcome",	"id.exposure",	"id.outcome",	"samplesize",	"SNP",	"b",	"se",	"p")
+leave_one_out_m$sex <- "M"
 
-Sig_womenORmen <- Sig_womenORmen[order(Sig_womenORmen$exposure, Sig_womenORmen$outcome, Sig_womenORmen$method, decreasing = FALSE), ]
-write.xlsx(Sig_womenORmen, "~/Results tables/Significant_women_or_men_final.xlsx")
+leave_one_out_f <- read.table("~/MR_onlycis_UKBB/MR_res_proxies/female/leaveoneout_females.txt", header=F)
+colnames(leave_one_out_f) <- c("exposure",	"outcome",	"id.exposure",	"id.outcome",	"samplesize",	"SNP",	"b",	"se",	"p")
+leave_one_out_f$sex <- "F"
 
-#Save significant proteins
-Significant_proteins <- unique(Sig_womenORmen$exposure)
-write.csv(Significant_proteins,"~/Results tables/Significant_proteins.csv")
-
-# Count significant results
-significant_count <- Sig_womenORmen  %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex==1 & method == "Wald ratio" & !is.na(fdr.women) & fdr.women < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex==1 & method == "Inverse variance weighted" & !is.na(fdr.women) & fdr.women < 0.05)
-  )
-significant_count
-
-significant_count <- Sig_womenORmen %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex==2 & method == "Wald ratio" & !is.na(fdr.men) & fdr.men < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex==2 & method == "Inverse variance weighted" & !is.na(fdr.men) & fdr.men < 0.05)
-  )
-significant_count
-
-significant_count <-Sig_womenORmen %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex==3 & method == "Wald ratio" & !is.na(fdr.men) & fdr.men < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex==3 & method == "Inverse variance weighted" & !is.na(fdr.men) & fdr.men < 0.05)
-  )
-significant_count
-
-significant_count <- Sig_womenORmen %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex==4 & method == "Wald ratio")
-  )
-significant_count
-
-selected_pairs <- Sig_womenORmen %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-
-n <- Sig_womenORmen %>%
-  dplyr::filter(SignificantBysex ==1) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-nrow(n)
+LOO <- rbind(leave_one_out_m,leave_one_out_f)
+write.xlsx(LOO,"~/Tables_new/ST2_leave_one_out.xlsx")
 
 
-###### CIS ######
+##### ST3. SIGNIFICANT RESULTS #####
 
-all_CIS <- read_excel("~/Results tables/All_results_CIS.xlsx")
-all_CIS <- all_CIS[!is.na(all_CIS$exposure), ]
+sig <- final1 %>%
+  dplyr::filter(SignificantBysex %in% c(1,2,3,4)) 
 
-# Select only Wald ratio results to compute variance explained
-Sig_men_Wald <- all_CIS %>%
-  group_by(exposure, outcome) %>%
-  filter(
-    method == "Wald ratio" & !is.na(fdr.men))%>%
-  ungroup()
-men <-  read.table("~/Men/final_results_for_paper/dat.males.txt",as.is=T,sep="\t")
-colnames(men) <- c("SNP","effect_allele.exposure","other_allele.exposure","effect_allele.outcome","other_allele.outcome","beta.exposure","beta.outcome","eaf.exposure","eaf.outcome",
-                   "remove","palindromic","ambiguous","id.outcome","se.outcome","pval.outcome","samplesize.outcome",
-                   "outcome","mr_keep.outcome","pval_origin.outcome","data_source.outcome","samplesize.exposure","se.exposure","pval.exposure","id.exposure","exposure",
-                   "mr_keep.exposure","pval_origin.exposure","data_source.exposure","action","SNP_index","mr_keep")
-men2 <- men %>%
-  filter(remove == "FALSE" &  ambiguous == "FALSE") 
-men3<- men2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-colnames(men3)<- c("IV_list.men" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-men_WR.sig <- merge(Sig_men_Wald, men3, by=c("exposure","outcome","IV_list.men"), all.x=TRUE)
-men_WR.sig$exp_var <- explained_variance(men_WR.sig,men_WR.sig$samplesize.exposure)
-men_WR.sig1 <- data.frame(men_WR.sig$exposure,men_WR.sig$outcome,men_WR.sig$method,men_WR.sig$exp_var)
-colnames(men_WR.sig1)<-c("exposure","outcome","method","exp_var.men")
-Sig_men <- merge(all_CIS,men_WR.sig1, by=c("exposure","outcome","method"),all = T)
-Sig_women_Wald <- all_CIS %>%
-  group_by(exposure, outcome) %>%
-  filter(
-    method == "Wald ratio" & !is.na(fdr.women))%>%
-  ungroup()
-women <- read.table("~/Women/final_results_for_paper/dat.females.txt",header=T,as.is=T,sep="\t")
-colnames(women) <- c("SNP","effect_allele.exposure","other_allele.exposure","effect_allele.outcome","other_allele.outcome","beta.exposure","beta.outcome","eaf.exposure","eaf.outcome","remove","palindromic","ambiguous","id.outcome","se.outcome","pval.outcome","samplesize.outcome","outcome","mr_keep.outcome","pval_origin.outcome","data_source.outcome","samplesize.exposure","se.exposure","pval.exposure","id.exposure","exposure","mr_keep.exposure","pval_origin.exposure","data_source.exposure","action","SNP_index","mr_keep")
-women2 <- women %>%
-  filter(remove == "FALSE" &  ambiguous == "FALSE")
-women3<- women2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-colnames(women3)<- c("IV_list.women" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-women_WR.sig <- merge(Sig_women_Wald, women3, by=c("exposure","outcome","IV_list.women"), all.x=TRUE)
-women_WR.sig$exp_var <- explained_variance(women_WR.sig,women_WR.sig$samplesize.exposure)
-women_WR.sig1 <- data.frame(women_WR.sig$exposure,women_WR.sig$outcome,women_WR.sig$method,women_WR.sig$exp_var)
-colnames(women_WR.sig1)<-c("exposure","outcome","method","exp_var.women")
+write.xlsx(sig,"~/Tables_new/ST3_significant_results.xlsx")
 
-# Final table with explained variance
-ALL_RESULTS1 <- merge(Sig_men,women_WR.sig1, by=c("exposure","outcome","method"),all = T)
+##### Save list of significant relationships per outcome ####
 
-# Process tables with process_tables function to add the "SignificantBysex" column
-final2 <- process_tables(ALL_RESULTS1)
-final3 <-  merge(final2, proteins, by ="exposure")
-write.xlsx(final3,"~/Results tables/Final_results_CIS_with_column.xlsx")
+sig_women <- final1 %>%
+  dplyr::filter(SignificantBysex %in% c(1,3,4)) 
+exposure_list <- tapply(sig_women$exposure, sig_women$outcome, function(x) unique(x))
 
-# Here we take everything, since CIS analyses have been done only on CIS+TRANS significant results
-Sig_womenORmen <-final3
-Sig_womenORmen$`Diff Beta WOMEN-MEN` <- abs(Sig_womenORmen$b.women)-abs(Sig_womenORmen$b.men)
-Sig_womenORmen$`Q COCHRAN_WEIGHTED BETA` <- (Sig_womenORmen$b.women*(1/Sig_womenORmen$se.women^2) 
-                                             + Sig_womenORmen$b.men*(1/Sig_womenORmen$se.men^2)) / 
-  ((1/Sig_womenORmen$se.women^2)+(1/Sig_womenORmen$se.men^2))
-Sig_womenORmen$Q_Cochran_pvalue <- 1 - pchisq((1/Sig_womenORmen$se.women^2) * 
-                                                (Sig_womenORmen$b.women- Sig_womenORmen$`Q COCHRAN_WEIGHTED BETA`)^2 + 
-                                                (1/Sig_womenORmen$se.men^2) * (Sig_womenORmen$b.men - Sig_womenORmen$`Q COCHRAN_WEIGHTED BETA`)^2, df = 1)
+for (exposure_name in names(exposure_list)) {
+  exposure_data <- exposure_list[[exposure_name]]
+  
+  filename <- paste0("~/Tables_new/list_women_", exposure_name)
+  
+  writeLines(as.character(exposure_data), con = filename)
+}
 
+sig_men <- final1 %>%
+  dplyr::filter(SignificantBysex %in% c(2,3,4)) 
+exposure_list <- tapply(sig_men$exposure, sig_men$outcome, function(x) unique(x))
 
-Sig_womenORmen <- Sig_womenORmen[order(Sig_womenORmen$exposure, Sig_womenORmen$outcome, Sig_womenORmen$method, decreasing = FALSE), ]
-write.xlsx(Sig_womenORmen, "~/Results tables/Significant_CIS_women_or_men_final.xlsx")
+for (exposure_name in names(exposure_list)) {
 
-# Count significant results
-significant_count <- Sig_womenORmen  %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex==1 & method == "Wald ratio" & !is.na(fdr.women) & fdr.women < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex==1 & method == "Inverse variance weighted" & !is.na(fdr.women) & fdr.women < 0.05)
-  )
-significant_count
+  exposure_data <- exposure_list[[exposure_name]]
+  
+  filename <- paste0("~/Tables_new/list_men_", exposure_name)
+  
+  writeLines(as.character(exposure_data), con = filename)
+}
 
-significant_count <- Sig_womenORmen %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex==2 & method == "Wald ratio" & !is.na(fdr.men) & fdr.men < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex==2 & method == "Inverse variance weighted" & !is.na(fdr.men) & fdr.men < 0.05)
-  )
-significant_count
-
-significant_count <-Sig_womenORmen %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex==3 & method == "Wald ratio" & !is.na(fdr.men) & fdr.men < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex==3 & method == "Inverse variance weighted" & !is.na(fdr.men) & fdr.men < 0.05)
-  )
-significant_count
-
-significant_count <- Sig_womenORmen %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex==4 & method == "Wald ratio")
-  )
-significant_count
-
-selected_pairs <- Sig_womenORmen %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-
-######TRANS ##########
-
-all_TRANS <- read_excel("~/Results tables/All_results_TRANS.xlsx")
-all_TRANS <- all_TRANS[!is.na(all_TRANS$exposure), ]
-
-# Select only Wald ratio results to compute variance explained
-Sig_men_Wald <- all_TRANS %>%
-  group_by(exposure, outcome) %>%
-  filter(
-    method == "Wald ratio" & !is.na(fdr.men))%>%
-  ungroup()
-men <-  read.table("~/Men/final_results_for_paper/dat.males.txt",as.is=T,sep="\t")
-colnames(men) <- c("SNP","effect_allele.exposure","other_allele.exposure","effect_allele.outcome","other_allele.outcome","beta.exposure","beta.outcome","eaf.exposure","eaf.outcome","remove","palindromic","ambiguous","id.outcome","se.outcome","pval.outcome","samplesize.outcome","outcome","mr_keep.outcome","pval_origin.outcome","data_source.outcome","samplesize.exposure","se.exposure","pval.exposure","id.exposure","exposure","mr_keep.exposure","pval_origin.exposure","data_source.exposure","action","SNP_index","mr_keep")
-men2 <- men %>%
-  filter(remove == "FALSE" &  ambiguous == "FALSE") 
-men3<- men2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-colnames(men3)<- c("IV_list.men" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-men_WR.sig <- merge(Sig_men_Wald, men3, by=c("exposure","outcome","IV_list.men"), all.x=TRUE)
-men_WR.sig$exp_var <- explained_variance(men_WR.sig,men_WR.sig$samplesize.exposure)
-men_WR.sig1 <- data.frame(men_WR.sig$exposure,men_WR.sig$outcome,men_WR.sig$method,men_WR.sig$exp_var)
-colnames(men_WR.sig1)<-c("exposure","outcome","method","exp_var.men")
-Sig_men <- merge(all_TRANS,men_WR.sig1, by=c("exposure","outcome","method"),all = T)
-Sig_women_Wald <- all_TRANS %>%
-  group_by(exposure, outcome) %>%
-  filter(
-    method == "Wald ratio" & !is.na(fdr.women))%>%
-  ungroup()
-women <- read.table("~/Women/final_results_for_paper/dat.females.txt",header=T,as.is=T,sep="\t")
-colnames(women) <- c("SNP","effect_allele.exposure","other_allele.exposure","effect_allele.outcome","other_allele.outcome","beta.exposure","beta.outcome","eaf.exposure","eaf.outcome","remove","palindromic","ambiguous","id.outcome","se.outcome","pval.outcome","samplesize.outcome","outcome","mr_keep.outcome","pval_origin.outcome","data_source.outcome","samplesize.exposure","se.exposure","pval.exposure","id.exposure","exposure","mr_keep.exposure","pval_origin.exposure","data_source.exposure","action","SNP_index","mr_keep")
-women2 <- women %>%
-  filter(remove == "FALSE" &  ambiguous == "FALSE")
-women3<- women2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-colnames(women3)<- c("IV_list.women" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-women_WR.sig <- merge(Sig_women_Wald, women3, by=c("exposure","outcome","IV_list.women"), all.x=TRUE)
-women_WR.sig$exp_var <- explained_variance(women_WR.sig,women_WR.sig$samplesize.exposure)
-women_WR.sig1 <- data.frame(women_WR.sig$exposure,women_WR.sig$outcome,women_WR.sig$method,women_WR.sig$exp_var)
-colnames(women_WR.sig1)<-c("exposure","outcome","method","exp_var.women")
-
-# Final table with explained variance
-ALL_RESULTS1 <- merge(Sig_men,women_WR.sig1, by=c("exposure","outcome","method"),all = T)
-
-# Process tables with process_tables function to add the "SignificantBysex" column
-final2 <- process_tables(ALL_RESULTS1)
-final3 <-  merge(final2, proteins, by ="exposure")
-write.xlsx(final3,"Final_results_TRANS_with_column.xlsx")
-
-# Here we take everything, since TRANS analyses have been done only on CIS+TRANS significant results
-Sig_womenORmen <-final3
-Sig_womenORmen$`Diff Beta WOMEN-MEN` <- abs(Sig_womenORmen$b.women)-abs(Sig_womenORmen$b.men)
-Sig_womenORmen$`Q COCHRAN_WEIGHTED BETA` <- (Sig_womenORmen$b.women*(1/Sig_womenORmen$se.women^2) 
-                                             + Sig_womenORmen$b.men*(1/Sig_womenORmen$se.men^2)) / 
-  ((1/Sig_womenORmen$se.women^2)+(1/Sig_womenORmen$se.men^2))
-Sig_womenORmen$Q_Cochran_pvalue <- 1 - pchisq((1/Sig_womenORmen$se.women^2) * 
-                                                (Sig_womenORmen$b.women- Sig_womenORmen$`Q COCHRAN_WEIGHTED BETA`)^2 + 
-                                                (1/Sig_womenORmen$se.men^2) * (Sig_womenORmen$b.men - Sig_womenORmen$`Q COCHRAN_WEIGHTED BETA`)^2, df = 1)
-
-Sig_womenORmen <- Sig_womenORmen[order(Sig_womenORmen$exposure, Sig_womenORmen$outcome, Sig_womenORmen$method, decreasing = FALSE), ]
-write.xlsx(Sig_womenORmen, "~/Results tables/Significant_TRANS_women_or_men_final.xlsx")
-
-# Count significant results
-significant_count <- Sig_womenORmen  %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex==1 & method == "Wald ratio" & !is.na(fdr.women) & fdr.women < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex==1 & method == "Inverse variance weighted" & !is.na(fdr.women) & fdr.women < 0.05)
-  )
-significant_count
-
-significant_count <- Sig_womenORmen %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex==2 & method == "Wald ratio" & !is.na(fdr.men) & fdr.men < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex==2 & method == "Inverse variance weighted" & !is.na(fdr.men) & fdr.men < 0.05)
-  )
-significant_count
-
-significant_count <-Sig_womenORmen %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex==3 & method == "Wald ratio" & !is.na(fdr.men) & fdr.men < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex==3 & method == "Inverse variance weighted" & !is.na(fdr.men) & fdr.men < 0.05)
-  )
-significant_count
-
-significant_count <- Sig_womenORmen %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex==4 & method == "Wald ratio")
-  )
-significant_count
-
-selected_pairs <- Sig_womenORmen %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-
-
-##### BIDIRECTIONAL MR ######
+##### ST4. BIDIRECTIONAL MR ######
 
 # MEN 
 
 # Upload file
-directory <- "~/Men/BidirectionalMR"
+directory <- "~/MR_onlycis_UKBB/BidirectionalMR/male" # da cambiare
 
 # Get the list of CSV files in the directory
 files <- list.files(directory, pattern = "\\.csv$", full.names = TRUE)
@@ -1167,8 +404,8 @@ merged_df <- merged_df %>% dplyr::select(-any_of(c("ple", "het")))
 merged_df <- merged_df[,-c(1,2)] # remove id
 new_males <- merged_df
 indices_na_exposure <- which(is.na(merged_df$exposure)) # check for failed analyses, 
-colnames(new_males) <- c("outcome", "exposure", "method", "nsnp.men", "b.men","se.men","pval.men",
-                         "egger_intercept.ple.men","se.ple.men","pval.ple.men","Q.het.men","Q_df.het.men","Q_pval.het.men","IV_list.men")
+colnames(new_males)[4:ncol(new_males)] <- paste0(colnames(new_males)[4:ncol(new_males)], ".men")
+
 
 # Remove MR-PRESSO when we have 1, 2 or 3 SNPs because the row is empty (MR-PRESSO doesn't work)
 new_males <- new_males %>%
@@ -1205,10 +442,27 @@ men_all <-new_males
 
 men_all$pval.men[men_all$nsnp.men == 0] <- 1  # set p-value to 1 when MR-PRESSO removes all SNPs
 
+
+# merge all the leaveoneout files
+#system("bash -c 'head -n 1 $(ls *leaveoneout*.txt | head -n 1) > leaveoneout_males.txt && tail -n +2 -q *leaveoneout*.txt >> leaveoneout_males.txt'")
+
+leave_one_out <- read.table("~/MR_onlycis_UKBB/BidirectionalMR/male/leaveoneout_males.txt", header=T)
+leave_one_out$id.exposure <- NULL
+leave_one_out$id.outcome <- NULL
+leave_one_out$samplesize <- NULL
+leave_one_out <- na.omit(leave_one_out)
+leave_one_out <- leave_one_out[!(leave_one_out$SNP == "All"),]
+
+men_all <- process_leave_one_out(
+  leave_one_out = leave_one_out,
+  base_data = men_all,
+  type = "men",
+  iv_list_col = "IV_list.men")
+
 # WOMEN 
 
 # Upload file
-directory <- "~/Women/BidirectionalMR"
+directory <- "~/MR_onlycis_UKBB/BidirectionalMR/female" 
 
 # Get the list of CSV files in the directory
 files <- list.files(directory, pattern = "\\.csv$", full.names = TRUE)
@@ -1220,8 +474,8 @@ merged_df_w  <- merged_df_w  %>% dplyr::select(-any_of(c("ple", "het")))
 merged_df_w  <- merged_df_w [,-c(1,2)] # remove id
 indices_na_exposure_w <- which(is.na(merged_df_w$exposure)) # check for failed analyses
 new_women <- merged_df_w 
-colnames(new_women) <- c("outcome", "exposure", "method", "nsnp.women", "b.women","se.women","pval.women",
-                         "egger_intercept.ple.women","se.ple.women","pval.ple.women","Q.het.women","Q_df.het.women","Q_pval.het.women","IV_list.women")
+colnames(new_women)[4:ncol(new_women)] <- paste0(colnames(new_women)[4:ncol(new_women)], ".women")
+
 
 # Remove MR-PRESSO when we have 1, 2 or 3 SNPs because the row is empty (MR-PRESSO doesn't work)
 new_women <- new_women %>%
@@ -1257,8 +511,24 @@ women_all <- new_women
 
 women_all$pval.women[women_all$nsnp.women == 0] <- 1 # set p-value to 1 when MR-PRESSO removes all SNPs
 
+# merge all the leaveoneout files
+#system("bash -c 'head -n 1 $(ls *leaveoneout*.txt | head -n 1) > leaveoneout_females.txt && tail -n +2 -q *leaveoneout*.txt >> leaveoneout_females.txt'")
+
+leave_one_out <- read.table("~/MR_onlycis_UKBB/BidirectionalMR/female/leaveoneout_females.txt", header=T)
+leave_one_out$id.exposure <- NULL
+leave_one_out$id.outcome <- NULL
+leave_one_out$samplesize <- NULL
+leave_one_out <- na.omit(leave_one_out)
+leave_one_out <- leave_one_out[!(leave_one_out$SNP == "All"),]
+women_all <- process_leave_one_out(
+  leave_one_out = leave_one_out,
+  base_data = women_all,
+  type = "women",
+  iv_list_col = "IV_list.women"
+)
+
 ALL_RESULTS <- merge(women_all,men_all, by=c("exposure","outcome", "method"),all = TRUE)
-write.xlsx(ALL_RESULTS, "~/Results tables/All_BIDIRECTIONAL_results.xlsx")
+write.xlsx(ALL_RESULTS, "~/Tables_new/All_BIDIRECTIONAL_results.xlsx")
 
 # Select only Wald ratio results to compute variance explained
 Sig_men_Wald <- ALL_RESULTS %>%
@@ -1267,208 +537,85 @@ Sig_men_Wald <- ALL_RESULTS %>%
     method == "Wald ratio" & !is.na(pval.men))%>%
   ungroup()
 
-men <-  read.table("~/Men/BidirectionalMR/dat.males.txt",as.is=T,sep="\t")
-colnames(men) <- c("SNP","effect_allele.exposure","other_allele.exposure","effect_allele.outcome","other_allele.outcome","beta.exposure","beta.outcome","eaf.exposure","eaf.outcome","remove","palindromic","ambiguous","id.outcome","se.outcome","pval.outcome","samplesize.outcome","outcome","mr_keep.outcome","pval_origin.outcome","data_source.outcome","samplesize.exposure","se.exposure","pval.exposure","id.exposure","exposure","mr_keep.exposure","pval_origin.exposure","data_source.exposure","action","SNP_index","mr_keep")
+# merge all the dat files
+# system("bash -c 'head -n 1 $(ls *dat*.txt | head -n 1) > dat_males.txt && tail -n +2 -q *dat*.txt >> dat_males.txt'")
+men <-  read.table("~/MR_onlycis_UKBB/BidirectionalMR/male/dat_males.txt",as.is=T,sep="\t", header = T)
 men2 <- men %>%
   filter(remove == "FALSE" &  ambiguous == "FALSE") 
-men3<- men2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-colnames(men3)<- c("IV_list.men" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-men_WR.sig <- merge(Sig_men_Wald, men3, by=c("exposure","outcome","IV_list.men"), all.x=TRUE)
+men3<- men2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  )
+colnames(men3)<- c("IV_list.men" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure" )
+men3 <- men3[!duplicated(men3), ]
+men_WR.sig <- merge(Sig_men_Wald, men3, by=c("exposure","IV_list.men"), all.x=TRUE)
 men_WR.sig$exp_var <- explained_variance(men_WR.sig,men_WR.sig$samplesize.exposure)
+
 men_WR.sig1 <- data.frame(men_WR.sig$exposure,men_WR.sig$outcome,men_WR.sig$method,men_WR.sig$exp_var)
 colnames(men_WR.sig1)<-c("exposure","outcome","method","exp_var.men")
 Sig_men <- merge(ALL_RESULTS,men_WR.sig1, by=c("exposure","outcome","method"),all = T)
+
 Sig_women_Wald <- ALL_RESULTS %>%
   group_by(exposure, outcome) %>%
   filter(
     method == "Wald ratio" & !is.na(pval.women))%>%
   ungroup()
-women <- read.table("~/Women/BidirectionalMR/dat.females.txt",header=T,as.is=T,sep="\t")
-colnames(women) <- c("SNP","effect_allele.exposure","other_allele.exposure","effect_allele.outcome","other_allele.outcome","beta.exposure","beta.outcome","eaf.exposure","eaf.outcome","remove","palindromic","ambiguous","id.outcome","se.outcome","pval.outcome","samplesize.outcome","outcome","mr_keep.outcome","pval_origin.outcome","data_source.outcome","samplesize.exposure","se.exposure","pval.exposure","id.exposure","exposure","mr_keep.exposure","pval_origin.exposure","data_source.exposure","action","SNP_index","mr_keep")
+
+# merge all the dat files
+# system("bash -c 'head -n 1 $(ls *dat*.txt | head -n 1) > dat_females.txt && tail -n +2 -q *dat*.txt >> dat_females.txt'")
+women <- read.table("~/MR_onlycis_UKBB/BidirectionalMR/female/dat_females.txt",header=T,as.is=T,sep="\t")
 women2 <- women %>%
   filter(remove == "FALSE" &  ambiguous == "FALSE")
-women3<- women2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-colnames(women3)<- c("IV_list.women" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
-women_WR.sig <- merge(Sig_women_Wald, women3, by=c("exposure","outcome","IV_list.women"), all.x=TRUE)
+women3<- women2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure" )
+colnames(women3)<- c("IV_list.women" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"   )
+women3 <- women3[!duplicated(women3), ]
+women_WR.sig <- merge(Sig_women_Wald, women3, by=c("exposure","IV_list.women"), all.x=TRUE)
 women_WR.sig$exp_var <- explained_variance(women_WR.sig,women_WR.sig$samplesize.exposure)
 women_WR.sig1 <- data.frame(women_WR.sig$exposure,women_WR.sig$outcome,women_WR.sig$method,women_WR.sig$exp_var)
 colnames(women_WR.sig1)<-c("exposure","outcome","method","exp_var.women")
 
-# All results with explained variance
+# All results with variance explained columns for Wald ratio results
 ALL_RESULTS1 <- merge(Sig_men,women_WR.sig1, by=c("exposure","outcome","method"),all = T)
 
 # Process tables with process_tables_bidirectional function to add the "SignificantBysex" column
 final2 <- process_tables_bidirectional(ALL_RESULTS1)
 
-###### ST4. Final column for bidirectional MR results ######
-all_sign <- read_excel("~/Results tables/Significant_women_or_men_final.xlsx")
+###### Final column for bidirectional MR results ######
+all_sign <- read_excel("~/Tables_new/ST3_significant_results.xlsx")
 sub <- subset(all_sign, select=c("exposure","outcome","method","SignificantBysex"))
 colnames(sub)<- c("outcome","exposure","method","SignificantBysex_main")
-final3 <- merge(final2, sub, by=c("exposure","outcome","method"), all.x = T)
+final3 <- merge(final2, sub, by=c("exposure","outcome","method"), all=T)
 
 final4 <- final3 %>%
   group_by(outcome, exposure) %>%
-  fill(SignificantBysex_main,
+  fill(SignificantBysex_main, SignificantBysex,
        .direction = "downup") %>%
   ungroup()
 
 # process data to write the column in the final way
 final5 <- column_bidirectional(final4)
 
-colnames(proteins)<- c("Assay" ,   "UniProt",  "outcome" ,"Name" )
+setwd("~/Tables_new")
+proteins <- data.table::fread("~/olink_protein_map_3k_v1.tsv")
+proteins<-subset(proteins,select =c("OlinkID","Assay","UniProt","olink_target_fullname"))
+proteins <- proteins[!duplicated(proteins), ]
+
+colnames(proteins)<- c( "outcome", "Assay" ,   "UniProt"  ,"Name" )
 final6 <-  merge(final5, proteins, by ="outcome")
 
-write.xlsx(final6,"~/Results tables/Final_results_BIDIR_with_3columns.xlsx")
+write.xlsx(final6,"~/Tables_new/Final_results_BIDIR_with_3columns.xlsx")
 final6$SignificantBysex <- NULL
 final6$SignificantBysex_main <-NULL
-write.xlsx(final6,"~/Results tables/Final_results_BIDIR_with_column.xlsx") # ST5
+write.xlsx(final6,"~/Tables_new/ST5_Final_results_BIDIR_with_column.xlsx") # ST5
 
-# Count significant results (to review)
-Sig_womenORmen <- final6 %>%
-  dplyr::group_by(exposure, outcome) %>%
-  filter(SignificantBysex_bid %in% c(1,2,"3_1","3_2","3_3","4_1")) %>%
-  ungroup()
-
-Sig_womenORmen <- Sig_womenORmen[order(Sig_womenORmen$exposure, Sig_womenORmen$outcome, Sig_womenORmen$method, decreasing = FALSE), ]
-
-significant_count <- Sig_womenORmen  %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex_bid==1 & method == "Wald ratio" & !is.na(pval.women) & pval.women < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex_bid==1 & method == "Inverse variance weighted" & !is.na(pval.women) & pval.women < 0.05)
-  )
-significant_count
-
-significant_count <- Sig_womenORmen %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex_bid==2 & method == "Wald ratio" & !is.na(pval.men) & pval.men < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex_bid==2 & method == "Inverse variance weighted" & !is.na(pval.men) & pval.men < 0.05)
-  )
-significant_count
-
-significant_count <-Sig_womenORmen %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex_bid=="3_1" & method == "Wald ratio" & !is.na(pval.men) & pval.men < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex_bid=="3_1" & method == "Inverse variance weighted" & !is.na(pval.men) & pval.men < 0.05)
-  )
-significant_count
-
-significant_count <-Sig_womenORmen %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex_bid=="3_2" & method == "Wald ratio" & !is.na(pval.men) & pval.men < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex_bid=="3_2" & method == "Inverse variance weighted" & !is.na(pval.men) & pval.men < 0.05)
-  )
-significant_count
-
-significant_count <-Sig_womenORmen %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex_bid=="3_3" & method == "Wald ratio" & !is.na(pval.men) & pval.men < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex_bid=="3_3" & method == "Inverse variance weighted" & !is.na(pval.men) & pval.men < 0.05)
-  )
-significant_count
-
-significant_count <-Sig_womenORmen %>%
-  dplyr::summarise(
-    wald_ratio_significant_count = sum(SignificantBysex_bid=="4_1" & method == "Wald ratio" & !is.na(pval.men) & pval.men < 0.05),
-    IVW_ratio_significant_count = sum(SignificantBysex_bid=="4_1" & method == "Inverse variance weighted" & !is.na(pval.men) & pval.men < 0.05)
-  )
-significant_count
-
-##### FINAL SIGNIFICANT CIS+TRANS, CIS, TRANS ####
-
-setwd("~/Results tables")
-all_sign <- read_excel("Significant_women_or_men_final.xlsx")
-all_CIS <- read_excel("Significant_CIS_women_or_men_final.xlsx") 
-all_TRANS <- read_excel("Significant_TRANS_women_or_men_final.xlsx")  
-proteins <- read.table("~/ProteinsNames_new.csv",header=T,as.is=T,sep=",")
-proteins<-subset(proteins,select =c("Assay","UniProt","exposure","Name"))
-
-all_sign <- all_sign[,-c(8,9,11,12,13,14,20,21,23,24,25,26,
-                         28,29,30,31,32,33,34,35,36,37,38,39,43,44,45)]
-colnames(all_sign) <- c("exposure","outcome" ,"method","nsnp.women", "b.women","se.women","pval.women","pval.ple.women","fdr.women" 
-                        ,"nsnp.men","b.men", "se.men","pval.men","pval.ple.men","fdr.men","exp_var.men","exp_var.women","SignificantBysex_CISTRANS"
-                        ,"Diff_Beta_WOMEN_MEN_CISTRANS","Q_COCHRAN_WEIGHTED_BETA_CISTRANS","Q_Cochran_pvalue_CISTRANS")
-all_sign <- all_sign[!(is.na(all_sign$nsnp.men) & is.na(all_sign$nsnp.women)), ]
-
-all_CIS <- all_CIS[,-c(8,9,11,12,13,14,20,21,22,24,25,26,
-                       28,29,30,31,32,33,34,35,36,37,38,39,40,41,43,44,45)]
-all_CIS <- all_CIS[!(is.na(all_CIS$nsnp.men) & is.na(all_CIS$nsnp.women)), ]
-colnames(all_CIS) <- c("exposure","outcome" ,"method","nsnp.women.CIS", "b.women.CIS","se.women.CIS","pval.women.CIS","pval.ple.women.CIS","fdr.women.CIS" 
-                       ,"nsnp.men.CIS","b.men.CIS", "se.men.CIS","pval.men.CIS","pval.ple.men.CIS","fdr.men.CIS","SignificantBysex_CIS","Diff_Beta_WOMEN_MEN_CIS","Q_COCHRAN_WEIGHTED_BETA_CIS","Q_Cochran_pvalue_CIS")
-
-all_TRANS <- all_TRANS[,-c(8,9,11,12,13,14,20,21,22,24,25,26,
-                           28,29,30,31,32,33,34,35,36,37,38,39,40,41,43,44,45)]
-all_TRANS <- all_TRANS[!(is.na(all_TRANS$nsnp.men) & is.na(all_TRANS$nsnp.women)), ]
-colnames(all_TRANS) <- c("exposure","outcome" ,"method","nsnp.women.TRANS", "b.women.TRANS","se.women.TRANS","pval.women.TRANS","pval.ple.women.TRANS","fdr.women.TRANS" 
-                         ,"nsnp.men.TRANS","b.men.TRANS", "se.men.TRANS","pval.men.TRANS","pval.ple.men.TRANS","fdr.men.TRANS","SignificantBysex_TRANS","Diff_Beta_WOMEN_MEN_TRANS","Q_COCHRAN_WEIGHTED_BETA_TRANS","Q_Cochran_pvalue_TRANS")
-
-Sig<- merge(all_sign, all_CIS, by=c("exposure","outcome", "method"),all = TRUE)
-Sig1 <- merge(Sig, all_TRANS, by=c("exposure","outcome", "method"),all= TRUE)
-Sig2 <- merge(Sig1, proteins, by="exposure")
-
-to_remove <- Sig2 %>%
-  group_by(exposure, outcome) %>%
-  filter(all(is.na(nsnp.men) & is.na(nsnp.women))) %>%
-  distinct(exposure, outcome)
-
-Sig2 <- Sig2 %>% 
-  anti_join(to_remove, by = c("exposure", "outcome"))
-
-save <- Sig2 %>%
-  group_by(outcome, exposure) %>%
-  fill(SignificantBysex_CISTRANS,SignificantBysex_CIS, SignificantBysex_TRANS,
-       .direction = "downup") %>%
-  ungroup()
-
-test <- save %>%
-  dplyr::filter(SignificantBysex_CISTRANS %in% 1 ) %>%
-  dplyr::filter(SignificantBysex_CIS %in% 1 ) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-
-test2 <- save %>%
-  dplyr::filter(SignificantBysex_CISTRANS %in% 2 ) %>%
-  dplyr::filter(SignificantBysex_CIS %in% 2 ) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-
-test3 <- save %>%
-  dplyr::filter(SignificantBysex_CISTRANS %in% 1 ) %>%
-  dplyr::filter(SignificantBysex_TRANS %in% 1 ) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-
-test4 <- save %>%
-  dplyr::filter(SignificantBysex_CISTRANS %in% 2 ) %>%
-  dplyr::filter(SignificantBysex_TRANS %in% 2 ) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-
-
-save$Q_Cochran_pvalue_CIS <-NULL
-save$Q_Cochran_pvalue_TRANS <- NULL
-save$Q_Cochran_pvalue_CISTRANS <-NULL
-
-save$Diff_Beta_WOMEN_MEN_CISTRANS <- NULL
-save$Diff_Beta_WOMEN_MEN_CIS <- NULL
-save$Diff_Beta_WOMEN_MEN_TRANS <- NULL
-
-save$Q_COCHRAN_WEIGHTED_BETA_CISTRANS <- NULL
-save$Q_COCHRAN_WEIGHTED_BETA_CIS <- NULL
-save$Q_COCHRAN_WEIGHTED_BETA_TRANS <- NULL
-
-write.xlsx(save,"TABLE_SIGNIFICANT_WITH_ALL_CIS_TRANS.xlsx")
-
-##### ST6. SIGNIFICANT AFTER BIDIRECTIONAL ####
-bid <- read_excel("~/Results tables/Final_results_BIDIR_with_3columns.xlsx")
+##### ST5. SIGNIFICANT AFTER BIDIRECTIONAL AND COCHRAN'S ####
+bid <- read_excel("~/Tables_new/Final_results_BIDIR_with_3columns.xlsx")
 
 bid1<- subset(bid,select=c("exposure","outcome","method","SignificantBysex", "SignificantBysex_bid"))
 colnames(bid1)<-c("outcome","exposure","method","SignificantBysex_bid","SignificantBysex_bid_new")
 
-new<- merge(Sig2,bid1,by=c("exposure","outcome","method"), all=T)
+new<- merge(all_sign,bid1,by=c("exposure","outcome","method"), all=T)
 
 new1 <- new %>%
   group_by(outcome, exposure) %>%
-  fill(SignificantBysex_CISTRANS,SignificantBysex_CIS, SignificantBysex_TRANS,SignificantBysex_bid, SignificantBysex_bid_new, 
+  fill(SignificantBysex, SignificantBysex_bid, SignificantBysex_bid_new, 
        .direction = "downup") %>%
   ungroup()
 
@@ -1478,7 +625,7 @@ N <- New2 %>%
   dplyr::select("exposure", "outcome","method") %>%
   distinct()
 
-n <- Sig2 %>%
+n <- all_sign %>%
   dplyr::select("exposure", "outcome","method") %>%
   distinct()
 
@@ -1487,155 +634,56 @@ s <- anti_join(N,n)
 New2_clean <- anti_join(New2, s, by = c("exposure", "outcome", "method"))
 
 
-##### ST5. LEAVE-ONE-OUT #####
-
-# Upload leaveoneout results
-women <- read.table("~/Women/final_results_for_paper/All_leaveoneout_women.txt", header=T)
-women$id.exposure <- NULL
-women$id.outcome <- NULL
-women$samplesize <- NULL
-
-men <- read.table("~/Men/final_results_for_paper/All_leaveoneout_men.txt", header=T)
-men$id.exposure <- NULL
-men$id.outcome <- NULL
-men$samplesize <- NULL
-
-all<- read_excel("~/Results tables/Final_results_with_column.xlsx")
-all<- subset(all,select = c("exposure","outcome","method","IV_list.women","IV_list.men"))
-
-# Select leave-one-out results only for significant after bidirectional for women and men
-sig <- New2_clean
-sig_pairs_W <- sig %>%
-  dplyr::filter(SignificantBysex_CISTRANS %in% c(1)) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-
-loo_W <- merge(women, sig_pairs_W, all.y = TRUE)
-
-not_sig_W <- loo_W %>%
-  filter(p >= 0.05) 
-
-# Apply filter_leaveoneout function to keep only significant results or results where MR-PRESSO remove the problematic SNP
-list_to_keep_W <- filter_leaveoneout(not_sig_W, all, "IV_list.women")$keep
-toremove_W <- filter_leaveoneout(not_sig_W, all, "IV_list.women")$remove
-
-list_to_keep_W$driving_SNP <- "excluded_by_presso"
-toremove_W$driving_SNP <-"yes"
-toremove_W <- subset(toremove_W, select=c("exposure","outcome","driving_SNP"))
-a <- rbind(list_to_keep_W,toremove_W)
-
-loo_W1 <- merge(loo_W,a, by=c("exposure","outcome"), all.x=T)
-loo_W1$sex<-"F"
-loo_W1$driving_SNP[is.na(loo_W1$driving_SNP)] <- "no"
-
-sig_pairs_M <- sig %>%
-  dplyr::filter(SignificantBysex_CISTRANS %in% c(2)) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-
-loo_M <- merge(men, sig_pairs_M, all.y = TRUE)
-
-not_sig_M <- loo_M %>%
-  filter(p >= 0.05) 
-
-# Apply filter_leaveoneout function to keep only significant results or results where MR-PRESSO remove the problematic SNP
-list_to_keep_M <- filter_leaveoneout(not_sig_M, all, "IV_list.men")$keep
-toremove_M <- filter_leaveoneout(not_sig_M, all, "IV_list.men")$remove
-
-list_to_keep_M$driving_SNP <- "excluded_by_presso"
-toremove_M$driving_SNP <-"yes"
-toremove_M <- subset(toremove_M, select=c("exposure","outcome","driving_SNP"))
-a <- rbind(list_to_keep_M,toremove_M)
-a <-distinct(a)
-
-loo_M1 <- merge(loo_M,a, by=c("exposure","outcome"), all.x=T)
-loo_M1$sex<-"M"
-loo_M1$driving_SNP[is.na(loo_M1$driving_SNP)] <- "no"
-
-final_LOO <- rbind(loo_W1,loo_M1)
-proteins <- read.table("~/ProteinsNames_new.csv",header=T,as.is=T,sep=",")
-proteins<-subset(proteins,select =c("Assay","UniProt","exposure","Name"))
-final_LOO <- merge(final_LOO,proteins,by="exposure")
-write.xlsx(final_LOO ,"~/Results tables/Table_leaveoneout.xlsx")
-
-# Remove pairs with not significant SNPs in leave-one-out (11 men and 5 in women)
-sig_filtered_W <- anti_join(sig, toremove_W, by = c("exposure", "outcome"))
-sig_after_loo <- anti_join(sig_filtered_W, toremove_M, by = c("exposure", "outcome"))
-
-save <- sig_after_loo
-save$Q_Cochran_pvalue_CIS <-NULL
-save$Q_Cochran_pvalue_TRANS <- NULL
-save$Q_Cochran_pvalue_CISTRANS <-NULL
-save$Diff_Beta_WOMEN_MEN_CISTRANS <- NULL
-save$Diff_Beta_WOMEN_MEN_CIS <- NULL
-save$Diff_Beta_WOMEN_MEN_TRANS <- NULL
-
-save$Q_COCHRAN_WEIGHTED_BETA_CISTRANS <- NULL
-save$Q_COCHRAN_WEIGHTED_BETA_CIS <- NULL
-save$Q_COCHRAN_WEIGHTED_BETA_TRANS <- NULL
-save$SignificantBysex_bid <- NULL
-
-names(save)[names(save) == "SignificantBysex_bid_new"] <- "SignificantBysex_bid"
-
-save <- save %>%
-  group_by(exposure, outcome)%>%
-  filter(SignificantBysex_CISTRANS_new != 5) 
-
-save$SignificantBysex_CISTRANS_new <- NULL
-save$SignificantBysex_CIS_new <- NULL
-save$SignificantBysex_TRANS_new <- NULL
-save$SignificantBysex_bid <- NULL
-write.xlsx(save,"~/Results tables/Table_significant_after_leaveoneout.xlsx")
-
-sig_pairs_after_bidir <- save %>%
-  dplyr::filter(SignificantBysex_CISTRANS %in% c(1, 2)) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-
-w <- save %>%
-  dplyr::filter(SignificantBysex_CISTRANS ==1) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-
-m <- save %>%
-  dplyr::filter(SignificantBysex_CISTRANS ==2) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-
-cis_only <- save %>% 
-  dplyr::filter(SignificantBysex_CISTRANS %in% c(3,4)) %>%
-  dplyr::filter(SignificantBysex_CIS %in% c(1, 2)) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-
-##### ST7. TABLE WITH COCHRAN'S Q STATISTICS #####
-
-sig_after_loo$SignificantBysex_bid <- NULL
-
-Sig_womenORmen <- sig_after_loo %>%
+Sig_womenORmen <- New2_clean %>%
   dplyr::group_by(exposure, outcome) %>%
-  filter(SignificantBysex_CISTRANS_new %in% c(1,2,3,4)) %>%
+  filter(SignificantBysex_new %in% c(1,2,3,4)) %>%
   ungroup()
-Sig4 <- Sig_womenORmen[Sig_womenORmen$method %in% c("Inverse variance weighted", "Wald ratio"), ]
+
+
+# Add Cochran's Q values
+Sig_womenORmen$`Diff Beta WOMEN-MEN` <- abs(Sig_womenORmen$b.women)-abs(Sig_womenORmen$b.men)
+Sig_womenORmen$`Q COCHRAN_WEIGHTED BETA` <- (Sig_womenORmen$b.women*(1/Sig_womenORmen$se.women^2) 
+                                             + Sig_womenORmen$b.men*(1/Sig_womenORmen$se.men^2)) / 
+  ((1/Sig_womenORmen$se.women^2)+(1/Sig_womenORmen$se.men^2))
+Sig_womenORmen$Q_Cochran_pvalue <- 1 - pchisq((1/Sig_womenORmen$se.women^2) * 
+                                                (Sig_womenORmen$b.women- Sig_womenORmen$`Q COCHRAN_WEIGHTED BETA`)^2 + 
+                                                (1/Sig_womenORmen$se.men^2) * (Sig_womenORmen$b.men - Sig_womenORmen$`Q COCHRAN_WEIGHTED BETA`)^2, df = 1)
+
+
+Sig_womenORmen <- Sig_womenORmen[order(Sig_womenORmen$exposure, Sig_womenORmen$outcome, Sig_womenORmen$method, decreasing = FALSE), ]
+
+Sig4 <- Sig_womenORmen
 Sig4$SignificantBysex_bid_new<- NULL
-Sig4$SignificantBysex_CISTRANS_new<- NULL
-Sig4$SignificantBysex_CIS_new<- NULL
-Sig4$SignificantBysex_TRANS_new<- NULL
-write.xlsx(Sig4 ,"~/Results tables/Table_cochran_after_leaveoneout.xlsx")
+Sig4$SignificantBysex_new<- NULL
+write.xlsx(Sig4 ,"~/Tables_new/ST4_Table_after_bidir_and_cochran_all_methods.xlsx")
+Sig4 <- Sig4 %>%
+  filter(method %in% c("Inverse variance weighted", "Wald ratio"))
+write.xlsx(Sig4 ,"~/Tables_new/ST4_Table_after_bidir_and_cochran.xlsx")
 
 
-##### LIFELINES #####
+##### ST6. LIFELINES #####
 
 pairs_for_lifelines <-  Sig4 %>%
-  dplyr::filter(SignificantBysex_CISTRANS %in% c(1,2) | (SignificantBysex_CISTRANS %in% c(3,4) & Q_Cochran_pvalue_CISTRANS<0.05) ) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
+     dplyr::filter(SexSpecific %in% c("men-only", "women-only") | Q_Cochran_pvalue<=0.05)%>%
+     dplyr::select("exposure", "outcome") %>%
+     distinct()
+
+exposure_list <- tapply(pairs_for_lifelines$exposure, pairs_for_lifelines$outcome, function(x) unique(x))
+
+for (exposure_name in names(exposure_list)) {
+  exposure_data <- exposure_list[[exposure_name]]
+  
+  filename <- paste0("~/Tables_new/list_lifelines_", exposure_name)
+  
+  writeLines(as.character(exposure_data), con = filename)
+}
+
 
 ###### ALL ######
 
 # MEN
 
-directory <- "~/Lifelines/Men"
+directory <- "~/MR_onlycis_UKBB/Lifelines/male"
 
 # Get the list of CSV files in the directory
 files <- list.files(directory, pattern = ".*_all_M\\.csv$", full.names = TRUE)
@@ -1647,9 +695,8 @@ merged_df <- merged_df %>% dplyr::select(-any_of(c("ple", "het")))
 merged_df <- merged_df[,-c(1,2)] # remove id
 new_males <- merged_df
 indices_na_exposure <- which(is.na(merged_df$exposure)) # check for failed analyses, 
-colnames(new_males) <- c("outcome", "exposure", "method", "nsnp.men", "b.men","se.men","pval.men",
-                         "egger_intercept.ple.men","se.ple.men","pval.ple.men","Q.het.men","Q_df.het.men","Q_pval.het.men","IV_list.men")
 
+colnames(new_males)[4:ncol(new_males)] <- paste0(colnames(new_males)[4:ncol(new_males)], ".men")
 # Remove MR-PRESSO when we have 1, 2 or 3 SNPs because the row is empty (MR-PRESSO doesn't work)
 new_males <- new_males %>%
   group_by(outcome, exposure) %>%
@@ -1681,13 +728,28 @@ new_males <- new_males %>%
   ) %>%
   ungroup()
 
+# merge all the dat files
+# system("bash -c 'head -n 1 $(ls *leaveoneout*.txt | head -n 1) > leaveoneout_males.txt && tail -n +2 -q *leaveoneout*.txt >> leaveoneout_males.txt'")
+leave_one_out <- read.table("~/MR_onlycis_UKBB/Lifelines/male/leaveoneout_males.txt", header=T)
+leave_one_out$id.exposure <- NULL
+leave_one_out$id.outcome <- NULL
+leave_one_out$samplesize <- NULL
+leave_one_out <- na.omit(leave_one_out)
+leave_one_out <- leave_one_out[!(leave_one_out$SNP == "All"),]
+new_males <- process_leave_one_out(
+  leave_one_out = leave_one_out,
+  base_data = new_males,
+  type = "men",
+  iv_list_col = "IV_list.men"
+)
+
 # WOMEN
 
 # Upload file
-directory <- "~/Lifelines/Women"
+directory <- "~/MR_onlycis_UKBB/Lifelines/female"
 
 # Get the list of CSV files in the directory
-files <- list.files(directory, pattern = ".*_all_F\\.csv$", full.names = TRUE)
+files <- list.files(directory, pattern = ".*_all_M\\.csv$", full.names = TRUE)
 df_list <- lapply(files, read.csv, header = TRUE, stringsAsFactors = FALSE)
 merged_df_w <- rbind.fill(df_list)
 
@@ -1696,9 +758,8 @@ merged_df_w  <- merged_df_w  %>% dplyr::select(-any_of(c("ple", "het")))
 merged_df_w  <- merged_df_w [,-c(1,2)] # remove id
 indices_na_exposure_w <- which(is.na(merged_df_w$exposure)) # check for failed analyses
 new_women <- merged_df_w 
-colnames(new_women) <- c("outcome", "exposure", "method", "nsnp.women", "b.women","se.women","pval.women",
-                         "egger_intercept.ple.women","se.ple.women","pval.ple.women","Q.het.women","Q_df.het.women","Q_pval.het.women","IV_list.women")
 
+colnames(new_women)[4:ncol(new_women)] <- paste0(colnames(new_women)[4:ncol(new_women)], ".women")
 # Remove MR-PRESSO when we have 1, 2 or 3 SNPs because the row is empty (MR-PRESSO doesn't work)
 new_women <- new_women %>%
   group_by(outcome, exposure) %>%
@@ -1729,12 +790,26 @@ new_women <- new_women %>%
   ) %>%
   ungroup()
 
+# merge all the dat files
+# system("bash -c 'head -n 1 $(ls *leaveoneout*.txt | head -n 1) > leaveoneout_females.txt && tail -n +2 -q *leaveoneout*.txt >> leaveoneout_females.txt'")
+leave_one_out <- read.table("~/MR_onlycis_UKBB/Lifelines/female/leaveoneout_females.txt", header=T)
+leave_one_out$id.exposure <- NULL
+leave_one_out$id.outcome <- NULL
+leave_one_out$samplesize <- NULL
+leave_one_out <- na.omit(leave_one_out)
+leave_one_out <- leave_one_out[!(leave_one_out$SNP == "All"),]
+new_women <- process_leave_one_out(
+  leave_one_out = leave_one_out,
+  base_data = new_women,
+  type = "women",
+  iv_list_col = "IV_list.women"
+)
 ###### NOSTATINS USERS ####
 
 # MEN
 
 # Upload file
-directory <- "~/Lifelines/Men"
+directory <- "~/MR_onlycis_UKBB/Lifelines/male"
 
 # Get the list of CSV files in the directory
 files <- list.files(directory, pattern = ".*_nostatins_M\\.csv$", full.names = TRUE)
@@ -1746,9 +821,8 @@ merged_df <- merged_df %>% dplyr::select(-any_of(c("ple", "het")))
 merged_df <- merged_df[,-c(1,2)] # remove id
 new_males_N <- merged_df
 indices_na_exposure <- which(is.na(merged_df$exposure)) # check for failed analyses, 
-colnames(new_males_N) <- c("outcome", "exposure", "method", "nsnp.men", "b.men","se.men","pval.men",
-                           "egger_intercept.ple.men","se.ple.men","pval.ple.men","Q.het.men","Q_df.het.men","Q_pval.het.men","IV_list.men")
 
+colnames(new_males_N)[4:ncol(new_males_N)] <- paste0(colnames(new_males_N)[4:ncol(new_males_N)], ".men")
 # Remove MR-PRESSO when we have 1, 2 or 3 SNPs because the row is empty (MR-PRESSO doesn't work)
 new_males_N <- new_males_N %>%
   group_by(outcome, exposure) %>%
@@ -1780,13 +854,26 @@ new_males_N <- new_males_N %>%
   ) %>%
   ungroup()
 
-
+# merge all the dat files
+# system("bash -c 'head -n 1 $(ls *leaveoneout*.txt | head -n 1) > leaveoneout_males.txt && tail -n +2 -q *leaveoneout*.txt >> leaveoneout_males.txt'")
+leave_one_out <- read.table("~/MR_onlycis_UKBB/Lifelines/male/leaveoneout_males.txt", header=T)
+leave_one_out$id.exposure <- NULL
+leave_one_out$id.outcome <- NULL
+leave_one_out$samplesize <- NULL
+leave_one_out <- na.omit(leave_one_out)
+leave_one_out <- leave_one_out[!(leave_one_out$SNP == "All"),]
+new_males_N <- process_leave_one_out(
+  leave_one_out = leave_one_out,
+  base_data = new_males_N,
+  type = "men",
+  iv_list_col = "IV_list.men"
+)
 # WOMEN
 # Upload file
-directory <- "~/Lifelines/Women"
+directory <- "~/MR_onlycis_UKBB/Lifelines/female"
 
 # Get the list of CSV files in the directory
-files <- list.files(directory, pattern = ".*_nostatins_F\\.csv$", full.names = TRUE)
+files <- list.files(directory, pattern = ".*_nostatins_M\\.csv$", full.names = TRUE)
 df_list <- lapply(files, read.csv, header = TRUE, stringsAsFactors = FALSE)
 merged_df_w <- rbind.fill(df_list)
 
@@ -1796,8 +883,8 @@ merged_df_w  <- merged_df_w [,-c(1,2)] # remove id
 indices_na_exposure_w <- which(is.na(merged_df_w$exposure)) # check for failed analyses
 
 new_women_N <- merged_df_w 
-colnames(new_women_N) <- c("outcome", "exposure", "method", "nsnp.women", "b.women","se.women","pval.women",
-                           "egger_intercept.ple.women","se.ple.women","pval.ple.women","Q.het.women","Q_df.het.women","Q_pval.het.women","IV_list.women")
+
+colnames(new_women_N)[4:ncol(new_women_N)] <- paste0(colnames(new_women_N)[4:ncol(new_women_N)], ".women")
 
 # Remove MR-PRESSO when we have 1, 2 or 3 SNPs because the row is empty (MR-PRESSO doesn't work)
 new_women_N <- new_women_N %>%
@@ -1829,24 +916,29 @@ new_women_N <- new_women_N %>%
   ) %>%
   ungroup()
 
-
+# merge all the dat files
+# system("bash -c 'head -n 1 $(ls *leaveoneout*.txt | head -n 1) > leaveoneout_females.txt && tail -n +2 -q *leaveoneout*.txt >> leaveoneout_females.txt'")
+leave_one_out <- read.table("~/MR_onlycis_UKBB/Lifelines/female/leaveoneout_females.txt", header=T)
+leave_one_out$id.exposure <- NULL
+leave_one_out$id.outcome <- NULL
+leave_one_out$samplesize <- NULL
+leave_one_out <- na.omit(leave_one_out)
+leave_one_out <- leave_one_out[!(leave_one_out$SNP == "All"),]
+new_women_N <- process_leave_one_out(
+  leave_one_out = leave_one_out,
+  base_data = new_women_N,
+  type = "women",
+  iv_list_col = "IV_list.women"
+)
 # Create final LIFELINES table
 all <- merge(new_women,new_males,all=T)
-colnames(all) <- c("outcome","exposure", "method", "nsnp.women.all" ,"b.women.all" ,"se.women.all" 
-                   , "pval.women.all" ,"egger_intercept.ple.women.all" ,"se.ple.women.all" ,"pval.ple.women.all"   
-                   , "Q.het.women.all","Q_df.het.women.all","Q_pval.het.women.all", "IV_list.women.all" , "nsnp.men.all"
-                   , "b.men.all", "se.men.all", "pval.men.all","egger_intercept.ple.men.all", "se.ple.men.all", "pval.ple.men.all",
-                   "Q.het.men.all", "Q_df.het.men.all", "Q_pval.het.men.all", "IV_list.men.all")
+colnames(all)[4:ncol(all)] <- paste0(colnames(all)[4:ncol(all)], ".all")
 all$outcome <- sub("_.*| .*", "", all$outcome)
 nostatins <- merge(new_women_N,new_males_N,all=T)
-colnames(nostatins ) <- c("outcome","exposure", "method", "nsnp.women.nostatins" ,"b.women.nostatins" ,"se.women.nostatins" 
-                          , "pval.women.nostatins" ,"egger_intercept.ple.women.nostatins" ,"se.ple.women.nostatins" ,"pval.ple.women.nostatins"   
-                          , "Q.het.women.nostatins","Q_df.het.women.nostatins","Q_pval.het.women.nostatins", "IV_list.women.nostatins" , "nsnp.men.nostatins"
-                          , "b.men.nostatins", "se.men.nostatins", "pval.men.nostatins","egger_intercept.ple.men.nostatins", "se.ple.men.nostatins", "pval.ple.men.nostatins",
-                          "Q.het.men.nostatins", "Q_df.het.men.nostatins", "Q_pval.het.men.nostatins", "IV_list.men.nostatins")
+colnames(nostatins)[4:ncol(nostatins)] <- paste0(colnames(nostatins)[4:ncol(nostatins)], ".nostatins")
 nostatins$outcome <- sub("_.*| .*", "", nostatins$outcome)
 
-setwd("~")
+setwd("~/Tables_new")
 tot <- merge(all,nostatins, by=c("exposure","outcome","method"), all=T)
 
 ALL_RESULTS <- tot
@@ -1857,8 +949,10 @@ Sig_men_Wald <- ALL_RESULTS %>%
   filter(
     method == "Wald ratio" & (!is.na(pval.men.all)))%>%
   ungroup()
-men <-  read.table("~/Lifelines/Men/dat.males.txt",as.is=T,sep="\t")
-colnames(men) <- c("SNP","effect_allele.exposure","other_allele.exposure","effect_allele.outcome","other_allele.outcome","beta.exposure","beta.outcome","eaf.exposure","eaf.outcome","remove","palindromic","ambiguous","id.outcome","se.outcome","pval.outcome","samplesize.outcome","outcome","mr_keep.outcome","pval_origin.outcome","data_source.outcome","samplesize.exposure","se.exposure","pval.exposure","id.exposure","exposure","mr_keep.exposure","pval_origin.exposure","data_source.exposure","action","SNP_index","mr_keep")
+
+# merge all the dat files
+# system("bash -c 'head -n 1 $(ls *dat*.txt | head -n 1) > dat_males.txt && tail -n +2 -q *dat*.txt >> dat_males.txt'")
+men <-  read.table("~/MR_onlycis_UKBB/Lifelines/male/dat_males.txt",as.is=T,sep="\t", header = T)
 men2 <- men %>%
   filter(remove == "FALSE" &  ambiguous == "FALSE") 
 men3<- men2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
@@ -1866,6 +960,10 @@ colnames(men3)<- c("IV_list.men.all" , "beta.exposure", "eaf.exposure" ,"samples
 men3$outcome <- sub("_.*| .*", "", men3$outcome)
 men_WR.sig <- merge(Sig_men_Wald, men3, by=c("exposure","outcome","IV_list.men.all"), all.x=TRUE)
 men_WR.sig <- men_WR.sig %>% distinct()
+men_WR.sig$samplesize.exposure <- as.numeric(men_WR.sig$samplesize.exposure)
+men_WR.sig$eaf.exposure <- as.numeric(men_WR.sig$eaf.exposure)
+men_WR.sig$beta.exposure <- as.numeric(men_WR.sig$beta.exposure)
+men_WR.sig$se.exposure <- as.numeric(men_WR.sig$se.exposure)
 men_WR.sig$exp_var <- explained_variance(men_WR.sig,men_WR.sig$samplesize.exposure)
 men_WR.sig1 <- data.frame(men_WR.sig$exposure,men_WR.sig$outcome,men_WR.sig$method,men_WR.sig$exp_var)
 colnames(men_WR.sig1)<-c("exposure","outcome","method","exp_var.men.all")
@@ -1875,8 +973,9 @@ Sig_men_Wald <- ALL_RESULTS %>%
   filter(
     method == "Wald ratio" & (!is.na(pval.men.nostatins)))%>%
   ungroup()
-men <-  read.table("~/Lifelines/Men/dat.males.txt",as.is=T,sep="\t")
-colnames(men) <- c("SNP","effect_allele.exposure","other_allele.exposure","effect_allele.outcome","other_allele.outcome","beta.exposure","beta.outcome","eaf.exposure","eaf.outcome","remove","palindromic","ambiguous","id.outcome","se.outcome","pval.outcome","samplesize.outcome","outcome","mr_keep.outcome","pval_origin.outcome","data_source.outcome","samplesize.exposure","se.exposure","pval.exposure","id.exposure","exposure","mr_keep.exposure","pval_origin.exposure","data_source.exposure","action","SNP_index","mr_keep")
+# merge all the dat files
+# system("bash -c 'head -n 1 $(ls *dat*.txt | head -n 1) > dat_males.txt && tail -n +2 -q *dat*.txt >> dat_males.txt'")
+men <-  read.table("~/MR_onlycis_UKBB/Lifelines/male/dat_males.txt",as.is=T,sep="\t", header=T)
 men2 <- men %>%
   filter(remove == "FALSE" &  ambiguous == "FALSE") 
 men3<- men2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
@@ -1895,8 +994,9 @@ Sig_women_Wald <- ALL_RESULTS %>%
   filter(
     method == "Wald ratio" & (!is.na(pval.women.all)))%>%
   ungroup()
-women <- read.table("~/Lifelines/Women/dat.females.txt",header=T,as.is=T,sep="\t")
-colnames(women) <- c("SNP","effect_allele.exposure","other_allele.exposure","effect_allele.outcome","other_allele.outcome","beta.exposure","beta.outcome","eaf.exposure","eaf.outcome","remove","palindromic","ambiguous","id.outcome","se.outcome","pval.outcome","samplesize.outcome","outcome","mr_keep.outcome","pval_origin.outcome","data_source.outcome","samplesize.exposure","se.exposure","pval.exposure","id.exposure","exposure","mr_keep.exposure","pval_origin.exposure","data_source.exposure","action","SNP_index","mr_keep")
+# merge all the dat files
+# system("bash -c 'head -n 1 $(ls *dat*.txt | head -n 1) > dat_females.txt && tail -n +2 -q *dat*.txt >> dat_females.txt'")
+women <- read.table("~/MR_onlycis_UKBB/Lifelines/female/dat_females.txt",header=T,as.is=T,sep="\t")
 women2 <- women %>%
   filter(remove == "FALSE" &  ambiguous == "FALSE")
 women3<- women2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
@@ -1913,8 +1013,9 @@ Sig_women_Wald <- ALL_RESULTS %>%
   filter(
     method == "Wald ratio" & (!is.na(pval.women.nostatins)))%>%
   ungroup()
-women <- read.table("~/Lifelines/Women/dat.females.txt",header=T,as.is=T,sep="\t")
-colnames(women) <- c("SNP","effect_allele.exposure","other_allele.exposure","effect_allele.outcome","other_allele.outcome","beta.exposure","beta.outcome","eaf.exposure","eaf.outcome","remove","palindromic","ambiguous","id.outcome","se.outcome","pval.outcome","samplesize.outcome","outcome","mr_keep.outcome","pval_origin.outcome","data_source.outcome","samplesize.exposure","se.exposure","pval.exposure","id.exposure","exposure","mr_keep.exposure","pval_origin.exposure","data_source.exposure","action","SNP_index","mr_keep")
+# merge all the dat files
+# system("bash -c 'head -n 1 $(ls *dat*.txt | head -n 1) > dat_females.txt && tail -n +2 -q *dat*.txt >> dat_females.txt'")
+women <- read.table("~/MR_onlycis_UKBB/Lifelines/female/dat_females.txt",header=T,as.is=T,sep="\t")
 women2 <- women %>%
   filter(remove == "FALSE" &  ambiguous == "FALSE")
 women3<- women2 %>% dplyr::select("SNP" , "beta.exposure", "eaf.exposure" ,"samplesize.exposure"  ,"se.exposure" , "exposure"   ,"pval.exposure"  ,"outcome"   )
@@ -1929,81 +1030,159 @@ colnames(women_WR.sig1)<-c("exposure","outcome","method","exp_var.women.nostatin
 
 # Final table with explained variance
 ALL_RESULTS1 <- merge(Sig_women,women_WR.sig1, by=c("exposure","outcome","method"),all = T)
-#ALL_RESULTS1 <-subset(ALL_RESULTS1, method %in% c("Inverse variance weighted","Wald ratio"))
-
 
 # Add SignificantBysex columns all and nostatins
-lif <- process_tables_lifelines_all(ALL_RESULTS1)
-lif2 <- process_tables_lifelines_nostatins(lif)
+lif3 <- process_tables_truly_sex_specific_lifelines(ALL_RESULTS1, col_name = "SexSpecific.all", suffix = ".all")
+lif4 <- process_tables_truly_sex_specific_lifelines(lif3, col_name = "SexSpecific.nostatins", suffix = ".nostatins")
 
-proteins <- read.table("~/ProteinsNames_new.csv",header=T,as.is=T,sep=",")
-proteins<-subset(proteins,select =c("Assay","UniProt","exposure","Name"))
+proteins <- data.table::fread("~/olink_protein_map_3k_v1.tsv")
+proteins<-subset(proteins,select =c("OlinkID","Assay","UniProt","olink_target_fullname"))
+proteins <- proteins[!duplicated(proteins), ]
+colnames(proteins)<-c("exposure","Assay","UniProt","Name")
 
-final3 <-  merge(lif2, proteins, by ="exposure")
+final3 <-  merge(lif4, proteins, by ="exposure")
 
-table<-read_excel("~/Results tables/Table_significant_after_bidir.xlsx")
+table<-read_excel("~/Tables_new/ST5_Table_after_bidir_and_cochran.xlsx")
 
-sub <- subset(table,select=c("exposure","outcome","method","b.women","b.men","SignificantBysex_CISTRANS"))
+sub <-  table %>%
+   dplyr::filter(SexSpecific %in% c("men-only", "women-only") | Q_Cochran_pvalue<=0.05)
+n <- sub %>%
+  dplyr::select("exposure", "outcome") %>%
+  distinct()
 
-final5 <- merge(final3,sub,by=c("exposure","outcome","method"),all.x=T)
+table1<-read_excel("~/Tables_new/ST5_Table_after_bidir_and_cochran_all_methods.xlsx")
+
+combinations_sub <- unique(sub[, c("exposure", "outcome")])
+
+table_filtered <- merge(table1, combinations_sub, by = c("exposure", "outcome"))
+
+df2_new <- anti_join(table_filtered, sub, by = c("exposure", "outcome", "method"))
+
+df_final <- bind_rows(sub, df2_new)
+
+sub <- subset(df_final,select=c("exposure","outcome","method","b.women","b.men","SexSpecific","Q_Cochran_pvalue"))
+
+final5 <- merge(final3,sub,by=c("exposure","outcome","method"),all=T)
 
 final6 <- final5 %>%
   group_by(outcome, exposure) %>%
-  fill(SignificantBysex_CISTRANS, SignificantBysex.all, SignificantBysex.nostatins,
+  fill(SexSpecific.all,SexSpecific.nostatins, SexSpecific,
        .direction = "downup") %>%
   ungroup()
+final6<-final6[!is.na(final6$SexSpecific),]
 
-###### ST8. LIFELINES FINAL TABLES ####
-final7 <- column_GLGC(final6)
-write.xlsx(final7,"~/Results tables/Final_LIFELINES_results_with_column_GLGC.xlsx")
+# Cochran's Q
+final6 <- calc_cochran_Q(
+  final6,
+  b_women_col = "b.women.all", se_women_col = "se.women.all",
+  b_men_col = "b.men.all", se_men_col = "se.men.all",
+  suffix = "all"
+)
 
-# Count significant results
-n <- final7 %>%
-  dplyr::filter(SignificantBysex.all ==1) %>%
+final6 <- calc_cochran_Q(
+  final6,
+  b_women_col = "b.women.nostatins", se_women_col = "se.women.nostatins",
+  b_men_col = "b.men.nostatins", se_men_col = "se.men.nostatins",
+  suffix = "nostatins"
+)
+
+
+###### LIFELINES FINAL TABLES ####
+final6 <- column_GLGC_sexspecific(final6)
+write.xlsx(final6,"~/Tables_new/ST6_Final_LIFELINES_results_with_column_GLGC.xlsx")
+
+
+##### ST5 - add column for opposite estimate #####
+
+
+df <- read_excel("~/Tables_new/SuppTables.xlsx",sheet="ST5")
+
+list1 <- list()
+
+combinations <-  df %>%
   dplyr::select("exposure", "outcome") %>%
   distinct()
-nrow(n)
 
 
-n <- final6 %>%
-  dplyr::filter(SignificantBysex.all ==2) %>%
-  dplyr::select("exposure", "outcome") %>%
+for (i in 1:nrow(combinations)) {
+  exp <- combinations$exposure[i]
+  out <- combinations$outcome[i]
+  sub_df <- subset(df, exposure == exp & outcome == out)
+  
+  if(any(sign(na.omit(sub_df$b.women))!=sign(na.omit(sub_df$b.men)))){
+    sub_df$opposite_estimate <- "yes"
+  } else {
+    sub_df$opposite_estimate <- "no"
+  }
+  list1[[paste0(exp, "_", out)]] <- sub_df
+}
+
+df <- do.call(rbind, list1)
+
+write.xlsx(df,"~/Tables_new/ST5.xlsx")
+
+
+
+
+##### ST7  #####
+
+
+df <- read_excel("~/Tables_new/SuppTables.xlsx",sheet="ST5")
+
+sig <- df %>%
+  dplyr::filter(SexSpecific %in% c("men-only", "women-only") | Q_Cochran_pvalue<=0.05) %>%
+dplyr::select("Assay","UniProt","olink_target_fullname" ) %>%
   distinct()
-nrow(n)
 
-n <- final6 %>%
-  dplyr::filter(SignificantBysex.all %in% c(3,4)) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-nrow(n)
+# Install required packages if not already installed
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+if (!requireNamespace("biomaRt", quietly = TRUE)) BiocManager::install("biomaRt")
+if (!requireNamespace("rentrez", quietly = TRUE)) install.packages("rentrez")
+if (!requireNamespace("dplyr", quietly = TRUE)) install.packages("dplyr")
+
+library(biomaRt)
+library(rentrez)
+library(dplyr)
+
+genes <- sig$Assay
+
+# Step 1: Get full gene names using biomaRt
+ensembl <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+gene_info <- getBM(
+  attributes = c("hgnc_symbol", "description"),
+  filters = "hgnc_symbol",
+  values = genes,
+  mart = ensembl
+)
+
+# Step 2: Get function summaries using rentrez
+get_gene_summary <- function(symbol) {
+  query <- paste0(symbol, "[Gene Name] AND Homo sapiens[Organism]")
+  search <- entrez_search(db = "gene", term = query, retmax = 1)
+  if (length(search$ids) == 0) return(NA)
+  summary <- entrez_summary(db = "gene", id = search$ids[[1]])
+  return(summary$summary)
+}
+
+# Step 3: Create data frame of summaries
+gene_summaries <- sapply(genes, get_gene_summary)
+summary_df <- data.frame(hgnc_symbol = names(gene_summaries), Function = gene_summaries)
+
+# Step 4: Merge full name + function into one table
+final_df <- merge(gene_info, summary_df, by = "hgnc_symbol", all = TRUE)
+
+colnames(final_df) <- c("Gene", "Full_Name", "Function")
+
+print(final_df)
+
+write.csv(final_df, "ST7.csv", row.names = FALSE)
 
 
-n <- final6 %>%
-  dplyr::filter(SignificantBysex.nostatins ==1) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-nrow(n)
 
-n <- final6 %>%
-  dplyr::filter(SignificantBysex.nostatins ==2) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-nrow(n)
 
-n <- final6 %>%
-  dplyr::filter(SignificantBysex.nostatins %in% c(3,4)) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-nrow(n)
 
-n <- final6 %>%
-  dplyr::filter(SignificantBysex.nostatins %in% c(1,2) & SignificantBysex.all %in% c(1,2)) %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-nrow(n) 
 
-n <- final7 %>%
-  dplyr::filter(Consistency_GLGC_Lifelines =="yes")  %>%
-  dplyr::select("exposure", "outcome") %>%
-  distinct()
-nrow(n) 
+
+
+
