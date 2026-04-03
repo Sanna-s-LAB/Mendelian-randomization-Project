@@ -11,9 +11,5 @@ The pipeline is divided in 3 folders containing the codes used to perform the ma
 2. The "***MR_analysis***" folder contains the codes for the main MR analysis, sensitivity analyses, plots and FDR correction.
 3. In the folder "***Power_analysis_and_figures***" there is the Rmd file to perform the power analysis of significant results and the respective replication analyses.
 
-<< **Use of AI statement:**
-We acknowledge the use of artificial intelligence tools, namely ChatGPT 4.0, to improve code efficiency, particularly to reduce the development time of clear and accurate result tables. >>
-
-
 ***QUESTIONS?*** 
 For questions regarding the code please contact Federica Grosso (federicagrosso@cnr.it) or Serena Sanna (serena.sanna@cnr.it)
