@@ -9,4 +9,4 @@
    - MR-PRESSO (using for plots the functions modified from package *TwoSampleMR* and putted in the "***MR_PRESSO_plots.R***" script)
    all this results are saved in files in the same folder, named with the accession number of exposure and outcome
 3. ***run_proteins.sh*** is useful to run the R script ***MR_UKBB2023.R***. We made this different script for UKB-PPP proteins since having 1,472 proteins as the outcomes, we needed to make it faster. In addition, the bash script allows us to split the current analysis into 3 different servers and, if needed, restart it by skipping the analyses already done.
-4. functions.R and F_statistics.R are scripts useful to compute the F-statistics for our instrumental variables
+4. functions.R and F_statistics.R are scripts useful to compute the F-statistics for our instrumental variables according the formula in *Stephen Burgess, Simon G Thompson, CRP CHD Genetics Collaboration, Avoiding bias from weak instruments in Mendelian randomization studies, International Journal of Epidemiology, Volume 40, Issue 3, June 2011, Pages 755–764, https://doi.org/10.1093/ije/dyr036*.
