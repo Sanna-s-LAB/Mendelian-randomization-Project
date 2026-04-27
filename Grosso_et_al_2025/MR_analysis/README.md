@@ -1,4 +1,4 @@
-1. functions.R and F_statistics.R are scripts useful to compute the F-statistics for our instrumental variables according the formula in *Stephen Burgess, Simon G Thompson, CRP CHD Genetics Collaboration, Avoiding bias from weak instruments in Mendelian randomization studies, International Journal of Epidemiology, Volume 40, Issue 3, June 2011, Pages 755–764, https://doi.org/10.1093/ije/dyr036*.
+1. ***functions.R*** and ***F_statistics.R*** are scripts useful to compute the F-statistics for our instrumental variables according the formula in *Stephen Burgess, Simon G Thompson, CRP CHD Genetics Collaboration, Avoiding bias from weak instruments in Mendelian randomization studies, International Journal of Epidemiology, Volume 40, Issue 3, June 2011, Pages 755–764, https://doi.org/10.1093/ije/dyr036*.
 2. Taking clumping results and entire GWAS of outcome, start with ***run_analysis.sh*** to run analysis of **MR.R** (with a "for" loop each of 37 GWAS of exposure vs 1 outcome in this case) and ***FDR_correction.R*** to correct IVW p-values
 3. This analysis includes:
    - Harmonization
